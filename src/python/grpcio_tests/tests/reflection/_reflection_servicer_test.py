@@ -40,16 +40,23 @@ from google.protobuf import descriptor_pool
 from google.protobuf import descriptor_pb2
 
 from src.proto.grpc.testing import empty_pb2
-#empty2_pb2 is imported for import-consequent side-effects.
-from src.proto.grpc.testing.proto2 import empty2_pb2  # pylint: disable=unused-import
 from src.proto.grpc.testing.proto2 import empty2_extensions_pb2
+from src.proto.grpc.testing import test_pb2
+from src.proto.grpc.testing import test_pb2_grpc
 
 from tests.unit.framework.common import test_constants
 
+
+class _Servicer(test_pb2_grpc.TestServiceServicer):
+    pass
+
+
 _EMPTY_PROTO_FILE_NAME = 'src/proto/grpc/testing/empty.proto'
 _EMPTY_PROTO_SYMBOL_NAME = 'grpc.testing.Empty'
-_SERVICE_NAMES = ('Angstrom', 'Bohr', 'Curie', 'Dyson', 'Einstein', 'Feynman',
-                  'Galilei')
+_INITIAL_SERVICE_NAMES = ('Angstrom', 'Bohr', 'Curie', 'Dyson', 'Einstein',
+                          'Feynman', 'Galilei')
+_RUNNING_SERVICE_NAMES = ('grpc.testing.TestService',)
+_SERVICE_NAMES = tuple(sorted(_INITIAL_SERVICE_NAMES + _RUNNING_SERVICE_NAMES))
 _EMPTY_EXTENSIONS_SYMBOL_NAME = 'grpc.testing.proto2.EmptyWithExtensions'
 _EMPTY_EXTENSIONS_NUMBERS = (124, 125, 126, 127, 128,)
 
@@ -67,6 +74,8 @@ class ReflectionServicerTest(unittest.TestCase):
         server_pool = logging_pool.pool(test_constants.THREAD_CONCURRENCY)
         self._server = grpc.server(server_pool)
         port = self._server.add_insecure_port('[::]:0')
+        test_pb2_grpc.add_TestServiceServicer_to_server(_Servicer(),
+                                                        self._server)
         reflection_pb2_grpc.add_ServerReflectionServicer_to_server(servicer,
                                                                    self._server)
         self._server.start()
@@ -98,7 +107,10 @@ class ReflectionServicerTest(unittest.TestCase):
         requests = (reflection_pb2.ServerReflectionRequest(
             file_containing_symbol=_EMPTY_PROTO_SYMBOL_NAME
         ), reflection_pb2.ServerReflectionRequest(
-            file_containing_symbol='i.donut.exist.co.uk.org.net.me.name.foo'),)
+            file_containing_symbol='i.donut.exist.co.uk.org.net.me.name.foo'
+        ), reflection_pb2.ServerReflectionRequest(
+            file_containing_symbol=_RUNNING_SERVICE_NAMES[0]
+        ),)
         responses = tuple(self._stub.ServerReflectionInfo(iter(requests)))
         expected_responses = (
             reflection_pb2.ServerReflectionResponse(
@@ -110,13 +122,14 @@ class ReflectionServicerTest(unittest.TestCase):
                 valid_host='',
                 error_response=reflection_pb2.ErrorResponse(
                     error_code=grpc.StatusCode.NOT_FOUND.value[0],
-                    error_message=grpc.StatusCode.NOT_FOUND.value[1].encode(),
-                )),)
+                    error_message=grpc.StatusCode.NOT_FOUND.value[1].encode(),)),
+            reflection_pb2.ServerReflectionResponse(
+                valid_host='',
+                file_descriptor_response=reflection_pb2.FileDescriptorResponse(
+                    file_descriptor_proto=(
+                        _file_descriptor_to_proto(test_pb2.DESCRIPTOR),))),)
         self.assertSequenceEqual(expected_responses, responses)
 
-    @unittest.skip(
-        'TODO(mmx): enable when (pure) python protobuf issue is fixed'
-        '(see https://github.com/google/protobuf/issues/2882)')
     def testFileContainingExtension(self):
         requests = (reflection_pb2.ServerReflectionRequest(
             file_containing_extension=reflection_pb2.ExtensionRequest(
