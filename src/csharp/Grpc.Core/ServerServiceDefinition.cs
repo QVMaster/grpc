@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Grpc.Core.Internal;
 
 namespace Grpc.Core
@@ -43,6 +44,14 @@ namespace Grpc.Core
             {
                 return this.callHandlers;
             }
+        }
+
+        /// <summary>
+        /// Returns a new <c>ServerServiceDefinition</c> instance that substitutes each handle with a corresponding one returned by <c>map</c>.
+        /// </summary>
+        internal ServerServiceDefinition SubstituteHandlers(Func<IServerCallHandler, IServerCallHandler> map)
+        {
+            return new ServerServiceDefinition(CallHandlers.ToDictionary(x => x.Key, x => map(x.Value)));
         }
 
         /// <summary>

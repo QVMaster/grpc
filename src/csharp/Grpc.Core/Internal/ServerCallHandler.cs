@@ -32,7 +32,12 @@ namespace Grpc.Core.Internal
         Task HandleCall(ServerRpcNew newRpc, CompletionQueueSafeHandle cq);
     }
 
-    internal class UnaryServerCallHandler<TRequest, TResponse> : IServerCallHandler
+    internal interface IInterceptableCallHandler
+    {
+        IServerCallHandler Intercept(Func<Delegate, Delegate> interceptor);
+    }
+
+    internal class UnaryServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
         where TResponse : class
     {
@@ -60,7 +65,7 @@ namespace Grpc.Core.Internal
             var responseStream = new ServerResponseStream<TRequest, TResponse>(asyncCall);
 
             Status status;
-            Tuple<TResponse,WriteFlags> responseTuple = null;
+            Tuple<TResponse, WriteFlags> responseTuple = null;
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
@@ -69,7 +74,7 @@ namespace Grpc.Core.Internal
                 var response = await handler(request, context).ConfigureAwait(false);
                 status = context.Status;
                 responseTuple = Tuple.Create(response, HandlerUtils.GetWriteFlags(context.WriteOptions));
-            } 
+            }
             catch (Exception e)
             {
                 if (!(e is RpcException))
@@ -89,9 +94,16 @@ namespace Grpc.Core.Internal
             }
             await finishedTask.ConfigureAwait(false);
         }
+
+        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        {
+            var handler = interceptor(this.handler) as UnaryServerMethod<TRequest, TResponse>;
+            GrpcPreconditions.CheckNotNull(handler);
+            return new UnaryServerCallHandler<TRequest, TResponse>(this.method, handler);
+        }
     }
 
-    internal class ServerStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler
+    internal class ServerStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
         where TResponse : class
     {
@@ -147,9 +159,16 @@ namespace Grpc.Core.Internal
             }
             await finishedTask.ConfigureAwait(false);
         }
+
+        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        {
+            var handler = interceptor(this.handler) as ServerStreamingServerMethod<TRequest, TResponse>;
+            GrpcPreconditions.CheckNotNull(handler);
+            return new ServerStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
+        }
     }
 
-    internal class ClientStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler
+    internal class ClientStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
         where TResponse : class
     {
@@ -177,7 +196,7 @@ namespace Grpc.Core.Internal
             var responseStream = new ServerResponseStream<TRequest, TResponse>(asyncCall);
 
             Status status;
-            Tuple<TResponse,WriteFlags> responseTuple = null;
+            Tuple<TResponse, WriteFlags> responseTuple = null;
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
@@ -205,9 +224,16 @@ namespace Grpc.Core.Internal
             }
             await finishedTask.ConfigureAwait(false);
         }
+
+        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        {
+            var handler = interceptor(this.handler) as ClientStreamingServerMethod<TRequest, TResponse>;
+            GrpcPreconditions.CheckNotNull(handler);
+            return new ClientStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
+        }
     }
 
-    internal class DuplexStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler
+    internal class DuplexStreamingServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
         where TResponse : class
     {
@@ -259,6 +285,13 @@ namespace Grpc.Core.Internal
                 throw;
             }
             await finishedTask.ConfigureAwait(false);
+        }
+
+        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        {
+            var handler = interceptor(this.handler) as DuplexStreamingServerMethod<TRequest, TResponse>;
+            GrpcPreconditions.CheckNotNull(handler);
+            return new DuplexStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
         }
     }
 
