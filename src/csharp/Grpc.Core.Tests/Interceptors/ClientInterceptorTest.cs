@@ -32,10 +32,45 @@ namespace Grpc.Core.Interceptors.Tests
 {
     public class ClientInterceptorTest
     {
-        [Test]
-        public void TestClientInterceptor()
+        private class AddHeaderClientInterceptor : ClientInterceptor
         {
-            
+            readonly Metadata.Entry header;
+            public AddHeaderClientInterceptor(string key, string value)
+            {
+                this.header = new Metadata.Entry(key, value);
+            }
+            public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request, Func<Method<TRequest, TResponse>, string, CallOptions, TRequest, TResponse> next)
+            {
+                options.Headers.Add(this.header);
+                return next(method, host, options, request);
+            }
+
+            public Metadata.Entry Header
+            {
+                get
+                {
+                    return this.header;
+                }
+            }
+        }
+
+        const string Host = "127.0.0.1";
+
+        [Test]
+        public void AddRequestHeaderInClientInterceptor()
+        {
+            var helper = new MockServiceHelper(Host);
+            var interceptor = new AddHeaderClientInterceptor("x-client-interceptor", "hello world");
+            helper.UnaryHandler = new UnaryServerMethod<string, string>((request, context) =>
+            {
+                var interceptorHeader = context.RequestHeaders.Last(m => (m.Key == interceptor.Header.Key)).Value;
+                Assert.AreEqual(interceptorHeader, interceptor.Header.Value);
+                return Task.FromResult("PASS");
+            });
+            var server = helper.GetServer();
+            server.Start();
+            var callInvoker = helper.GetChannel().Intercept(interceptor);
+            Assert.AreEqual("PASS", callInvoker.BlockingUnaryCall(new Method<string, string>(MethodType.Unary, MockServiceHelper.ServiceName, "Unary", Marshallers.StringMarshaller, Marshallers.StringMarshaller), Host, new CallOptions().WithHeaders(new Metadata()), ""));
         }
     }
 }
