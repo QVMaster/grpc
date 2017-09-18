@@ -37,7 +37,7 @@ namespace Grpc.Core.Tests
         public const string ServiceName = "tests.Test";
 
         readonly string host;
-        readonly ServerServiceDefinition serviceDefinition;
+        ServerServiceDefinition serviceDefinition;
         readonly IEnumerable<ChannelOption> channelOptions;
 
         readonly Method<string, string> unaryMethod;
@@ -183,6 +183,10 @@ namespace Grpc.Core.Tests
             get
             {
                 return this.serviceDefinition;
+            }
+            set
+            {
+                this.serviceDefinition = value;
             }
         }
       
