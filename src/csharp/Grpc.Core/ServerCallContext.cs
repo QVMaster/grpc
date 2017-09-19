@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,6 +37,7 @@ namespace Grpc.Core
         private readonly Metadata requestHeaders;
         private readonly CancellationToken cancellationToken;
         private readonly Metadata responseTrailers = new Metadata();
+        private readonly Dictionary<string, object> items = new Dictionary<string, object>();
 
         private Status status = Status.DefaultSuccess;
         private Func<Metadata, Task> writeHeadersFunc;
@@ -153,6 +155,18 @@ namespace Grpc.Core
             set
             {
                 status = value;
+            }
+        }
+
+        /// <summary>
+        /// Returns a dictionary containing additional state associated
+        /// with this instance of <see cref="ServerCallContext"/> under the specified key.
+        /// </summary>
+        public IDictionary<string, object> Items
+        {
+            get
+            {
+                return this.items;
             }
         }
 
