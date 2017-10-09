@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 
 using Grpc.Core.Internal;
@@ -37,7 +36,6 @@ namespace Grpc.Core
         ContextPropagationToken propagationToken;
         CallCredentials credentials;
         CallFlags flags;
-        Dictionary<object, object> items;
 
         /// <summary>
         /// Creates a new instance of <c>CallOptions</c> struct.
@@ -48,10 +46,8 @@ namespace Grpc.Core
         /// <param name="writeOptions">Write options that will be used for this call.</param>
         /// <param name="propagationToken">Context propagation token obtained from <see cref="ServerCallContext"/>.</param>
         /// <param name="credentials">Credentials to use for this call.</param>
-        /// <param name="items">Dictionary used to store additional state as the call progresses.</param>
         public CallOptions(Metadata headers = null, DateTime? deadline = null, CancellationToken cancellationToken = default(CancellationToken),
-                           WriteOptions writeOptions = null, ContextPropagationToken propagationToken = null, CallCredentials credentials = null,
-                           Dictionary<object, object> items = null)
+                           WriteOptions writeOptions = null, ContextPropagationToken propagationToken = null, CallCredentials credentials = null)
         {
             this.headers = headers;
             this.deadline = deadline;
@@ -60,7 +56,6 @@ namespace Grpc.Core
             this.propagationToken = propagationToken;
             this.credentials = credentials;
             this.flags = default(CallFlags);
-            this.items = items;
         }
 
         /// <summary>
@@ -115,14 +110,6 @@ namespace Grpc.Core
         public CallCredentials Credentials
         {
             get { return this.credentials; }
-        }
-
-        /// <summary>
-        /// Dictionary containing additional state associated with the current call.
-        /// </summary>
-        public Dictionary<object, object> Items
-        {
-            get { return this.items; }
         }
 
         /// <summary>
@@ -212,17 +199,6 @@ namespace Grpc.Core
         {
             var newOptions = this;
             newOptions.credentials = credentials;
-            return newOptions;
-        }
-
-        /// <summary>
-        /// Returns a new instance of <see cref="CallOptions"/> with <c>Items</c> set to the value provided.
-        /// Values of all other fields are preserved.
-        /// </summary>
-        public CallOptions WithItems(Dictionary<object, object> items)
-        {
-            var newOptions = this;
-            newOptions.items = items;
             return newOptions;
         }
 
