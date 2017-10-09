@@ -34,11 +34,11 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> next)
+        public virtual Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> next)
             where TRequest : class
             where TResponse : class
         {
-            return await next(request, context).ConfigureAwait(false);
+            return next(request, context);
         }
 
         /// <summary>
@@ -46,11 +46,11 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual async Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> next)
             where TRequest : class
             where TResponse : class
         {
-            return await next(requestStream, context).ConfigureAwait(false);
+            return next(requestStream, context);
         }
 
         /// <summary>
@@ -58,11 +58,11 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual async Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> next)
             where TRequest : class
             where TResponse : class
         {
-            await next(request, responseStream, context).ConfigureAwait(false);
+            return next(request, responseStream, context);
         }
 
         /// <summary>
@@ -70,11 +70,11 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual async Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> next)
             where TRequest : class
             where TResponse : class
         {
-            await next(requestStream, responseStream, context).ConfigureAwait(false);
+            return next(requestStream, responseStream, context);
         }
 
         private static class WrapUtil<TRequest, TResponse>

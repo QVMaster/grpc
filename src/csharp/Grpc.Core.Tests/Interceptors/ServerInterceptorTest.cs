@@ -42,10 +42,10 @@ namespace Grpc.Core.Interceptors.Tests
             {
                 this.header = new Metadata.Entry(key, value);
             }
-            public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> next)
+            public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> next)
             {
                 context.RequestHeaders.Add(header);
-                return await next(request, context).ConfigureAwait(false);
+                return next(request, context);
             }
 
             public Metadata.Entry Header
