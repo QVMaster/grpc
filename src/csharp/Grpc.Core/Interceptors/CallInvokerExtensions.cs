@@ -32,12 +32,12 @@ namespace Grpc.Core.Interceptors
         private class InterceptingCallInvoker : CallInvoker
         {
             readonly CallInvoker invoker;
-            readonly ClientInterceptor interceptor;
+            readonly Interceptor interceptor;
 
             /// <summary>
             /// Creates a new instance of InterceptingCallInvoker with the given underlying CallInvoker and interceptor.
             /// </summary>
-            public InterceptingCallInvoker(CallInvoker invoker, ClientInterceptor interceptor)
+            public InterceptingCallInvoker(CallInvoker invoker, Interceptor interceptor)
             {
                 this.invoker = GrpcPreconditions.CheckNotNull(invoker, "invoker");
                 this.interceptor = GrpcPreconditions.CheckNotNull(interceptor, "interceptor");
@@ -100,7 +100,7 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Returns a <c>CallInvoker</c> object that intercepts calls to the specified invoker via the given interceptor.
         /// </summary>
-        public static CallInvoker Intercept(this CallInvoker invoker, ClientInterceptor interceptor)
+        public static CallInvoker Intercept(this CallInvoker invoker, Interceptor interceptor)
         {
             return new InterceptingCallInvoker(invoker, interceptor);
         }

@@ -32,7 +32,7 @@ namespace Grpc.Core.Interceptors.Tests
 {
     public class ClientInterceptorTest
     {
-        private class AddHeaderClientInterceptor : ClientInterceptor
+        private class AddHeaderClientInterceptor : Interceptor
         {
             readonly Metadata.Entry header;
             public AddHeaderClientInterceptor(string key, string value)

@@ -30,7 +30,7 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Returns a <c>ServerServiceDefinition</c> object that intercepts calls to the underlying service through the given interceptor.
         /// </summary>
-        public static ServerServiceDefinition Intercept(this ServerServiceDefinition service, ServerInterceptor interceptor)
+        public static ServerServiceDefinition Intercept(this ServerServiceDefinition service, Interceptor interceptor)
         {
             GrpcPreconditions.CheckNotNull(service, "service");
             GrpcPreconditions.CheckNotNull(interceptor, "interceptor");

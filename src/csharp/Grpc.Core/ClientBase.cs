@@ -149,7 +149,7 @@ namespace Grpc.Core
         /// </summary>
         protected internal class ClientBaseConfiguration
         {
-            private class ClientHeaderInterceptor : ClientInterceptor
+            private class ClientHeaderInterceptor : Interceptor
             {
                 readonly Func<IMethod, string, CallOptions, Tuple<string, CallOptions>> interceptor;
 

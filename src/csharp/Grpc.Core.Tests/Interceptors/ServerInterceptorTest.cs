@@ -34,7 +34,7 @@ namespace Grpc.Core.Interceptors.Tests
     {
         const string Host = "127.0.0.1";
 
-        private class AddRequestHeaderServerInterceptor : ServerInterceptor
+        private class AddRequestHeaderServerInterceptor : Interceptor
         {
             readonly Metadata.Entry header;
 

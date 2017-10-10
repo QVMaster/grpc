@@ -29,7 +29,7 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Returns a <c>CallInvoker</c> object that intercepts a channel with the given interceptor.
         /// </summary>
-        public static CallInvoker Intercept(this Channel channel, ClientInterceptor interceptor)
+        public static CallInvoker Intercept(this Channel channel, Interceptor interceptor)
         {
             return new DefaultCallInvoker(channel).Intercept(interceptor);
         }
