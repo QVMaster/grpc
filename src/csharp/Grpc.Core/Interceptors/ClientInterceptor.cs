@@ -20,19 +20,45 @@ using System;
 
 namespace Grpc.Core.Interceptors
 {
-
+    /// <summary>
+    /// Carries the context information for client interceptor calls.
+    /// </summary>
     public class ClientInterceptorContext<TRequest, TResponse>
         where TRequest : class
         where TResponse : class
     {
+        /// <summary>
+        /// Creates a new instance of <see cref="Grpc.Core.Interceptors.ClientInterceptorContext{TRequest, TResponse}" />
+        /// with the specified method, host, and call options.
+        /// </summary>
+        /// <param name="method">A <see cref="Grpc.Core.Method{TRequest, TResponse}"/> object representing the RPC method of the current call.</param>
+        /// <param name="host">A string representing the host to dispatch the current call to.</param>
+        /// <param name="options">A <see cref="Grpc.Core.CallOptions"/> instance containing the call options of the current call.</param>
+        
         public ClientInterceptorContext(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             Method = method;
             Host = host;
             Options = options;
         }
+
+        /// <summary>
+        /// Gets the <see cref="Grpc.Core.Method{TRequest, TResponse}"/> representing the RPC method
+        /// to be invoked for the current call.
+        /// </summary>
         public Method<TRequest, TResponse> Method { get; }
+
+        /// <summary>
+        /// Gets the host associated with the current call.
+        /// </summary>
+
         public string Host { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Grpc.Core.CallOptions"/> structure representing the call options
+        /// associated with the current call.
+        /// </summary>
+
         public CallOptions Options { get; }
     }
 
@@ -43,18 +69,37 @@ namespace Grpc.Core.Interceptors
     /// </summary>
     public abstract class ClientInterceptor
     {
+        /// <summary>
+        /// Represents a continuation for intercepting simple blocking invocations.
+        /// </summary>
         public delegate TResponse BlockingUnaryCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
             where TRequest : class
             where TResponse : class;
+        
+        /// <summary>
+        /// Represents a continuation for intercepting simple asynchronous invocations.
+        /// </summary>
         public delegate AsyncUnaryCall<TResponse> AsyncUnaryCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
             where TRequest : class
             where TResponse : class;
+
+        /// <summary>
+        /// Represents a continuation for intercepting asynchronous server-streaming invocations.
+        /// </summary>
         public delegate AsyncServerStreamingCall<TResponse> AsyncServerStreamingCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
             where TRequest : class
             where TResponse : class;
+        
+        /// <summary>
+        /// Represents a continuation for intercepting asynchronous client-streaming invocations.
+        /// </summary>
         public delegate AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context)
             where TRequest : class
             where TResponse : class;
+
+        /// <summary>
+        /// Represents a continuation for intercepting asynchronous duplex invocations.
+        /// </summary>
         public delegate AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context)
             where TRequest : class
             where TResponse : class;
