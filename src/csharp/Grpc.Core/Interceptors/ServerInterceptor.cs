@@ -83,22 +83,22 @@ namespace Grpc.Core.Interceptors
         {
             public static UnaryServerMethod<TRequest, TResponse> Unary(UnaryServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
             {
-                return async (request, context) => await interceptor.UnaryServerHandler<TRequest, TResponse>(request, context, handler).ConfigureAwait(false);
+                return (request, context) => interceptor.UnaryServerHandler<TRequest, TResponse>(request, context, handler);
             }
 
             public static ClientStreamingServerMethod<TRequest, TResponse> ClientStreaming(ClientStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
             {
-                return async (request, context) => await interceptor.ClientStreamingServerHandler<TRequest, TResponse>(request, context, handler).ConfigureAwait(false);
+                return (request, context) => interceptor.ClientStreamingServerHandler<TRequest, TResponse>(request, context, handler);
             }
 
             public static ServerStreamingServerMethod<TRequest, TResponse> ServerStreaming(ServerStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
             {
-                return async (request, response, context) => await interceptor.ServerStreamingServerHandler<TRequest, TResponse>(request, response, context, handler).ConfigureAwait(false);
+                return (request, response, context) => interceptor.ServerStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
             }
 
             public static DuplexStreamingServerMethod<TRequest, TResponse> DuplexStreaming(DuplexStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
             {
-                return async (request, response, context) => await interceptor.DuplexStreamingServerHandler<TRequest, TResponse>(request, response, context, handler).ConfigureAwait(false);
+                return (request, response, context) => interceptor.DuplexStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
             }
         }
 
