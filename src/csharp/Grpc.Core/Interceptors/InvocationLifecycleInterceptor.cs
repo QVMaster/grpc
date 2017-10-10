@@ -24,16 +24,12 @@ using Grpc.Core.Internal;
 namespace Grpc.Core.Interceptors
 {
 
-    class LifecycleObserver
-    {
-    }
 
-    interface ILifecycleObserver
+    interface ICallObserver
     {
-        void BeginCall();
-        void EndCall();
-        void OnRequest();
-        void OnResponse();
+        object ObserveCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request = default(TRequest))
+            where TRequest : class
+            where TResponse : class;
     }
 
     /// <summary>
@@ -41,8 +37,8 @@ namespace Grpc.Core.Interceptors
     /// events as they happen.
     /// This is an EXPERIMENTAL API.
     /// </summary>
-    class InvocationLifecycleObserverInterceptor<TLifecycleObserver> : Interceptor
-        where TLifecycleObserver : ILifecycleObserver, new()
+    class InvocationLifecycleObserverInterceptor<TCallObserver> : Interceptor
+        where TCallObserver : ICallObserver, new()
     {
         /// <summary>
         /// Intercepts a blocking invocation of a simple remote call.
@@ -59,10 +55,11 @@ namespace Grpc.Core.Interceptors
         /// <returns>The response messaage of the current invocation.</returns>
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
         {
-            BeginCall();
-            var returnValue = continuation(request, context);
-            EndCall();
-            return returnValue;
+            var observer = new TCallObserver().ObserveCall(context, request);
+            if (observer == null)
+            {
+                return continuation(request, context);
+            }
         }
 
         /// <summary>
@@ -79,10 +76,11 @@ namespace Grpc.Core.Interceptors
         /// </param>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
         {
-            BeginCall();
-            var returnValue = continuation(request, context);
-            EndCall();
-            return returnValue;
+            var observer = new TCallObserver().ObserveCall(context, request);
+            if (observer == null)
+            {
+                return continuation(request, context);
+            }
         }
 
         /// <summary>
@@ -99,10 +97,13 @@ namespace Grpc.Core.Interceptors
         /// </param>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            BeginCall();
-            var returnValue = continuation(request, context);
-            EndCall();
-            return returnValue;
+            
+            var observer = new TCallObserver().ObserveCall(context, request);
+            if (observer == null)
+            {
+                return continuation(request, context);
+            }
+            
         }
 
         /// <summary>
@@ -118,10 +119,12 @@ namespace Grpc.Core.Interceptors
         /// </param>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            BeginCall();
-            var returnValue = continuation(context);
-            EndCall();
-            return returnValue;
+            
+            var observer = new TCallObserver().ObserveCall(context);
+            if (observer == null)
+            {
+                return continuation(context);
+            }
         }
 
         /// <summary>
@@ -137,13 +140,23 @@ namespace Grpc.Core.Interceptors
         /// </param>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            BeginCall();
-            var returnValue = continuation(context);
-            EndCall();
-            return returnValue;
-        }
+            var observer = new TCallObserver().ObserveCall(context);
+            if (observer == null)
+            {
+                return continuation(context);
+            }
 
-        protected virtual void BeginCall(){}
-        protected virtual void EndCall(){}
+            if (observer.OnRequestMessage) {
+                
+            }
+            IClientStreamWriter<TRequest> requestStream = 
+            IAsyncStreamReader<TResponse> responseStream;
+            Task<Metadata> responseHeadersAsync;
+            Func<Status> getStatusFunc;
+            Func<Metadata> getTrailersFunc;
+            Action disposeAction;
+
+            return new AsyncDuplexStreamingCallWrapper<TRequest, TResponse>(continuation, observer).Wrap();
+        }
     }
 }
