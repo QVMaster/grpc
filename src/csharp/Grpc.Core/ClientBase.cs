@@ -164,28 +164,28 @@ namespace Grpc.Core
                 /// <summary>
                 /// Intercepts a blocking invocation of a simple remote call.
                 /// </summary>
-                public override TResponse BlockingUnaryCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
+                public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
                 {
                     var newHeaders = interceptor(context.Method, context.Host, context.Options);
-                    return continuation(new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2), request);
+                    return continuation(request, new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2));
                 }
 
                 /// <summary>
                 /// Intercepts an asynchronous invocation of a simple remote call.
                 /// </summary>
-                public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
+                public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
                 {
                     var newHeaders = interceptor(context.Method, context.Host, context.Options);
-                    return continuation(new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2), request);
+                    return continuation(request, new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2));
                 }
 
                 /// <summary>
                 /// Intercepts an asynchronous invocation of a streaming remote call.
                 /// </summary>
-                public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
+                public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
                 {
                     var newHeaders = interceptor(context.Method, context.Host, context.Options);
-                    return continuation(new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2), request);
+                    return continuation(request, new ClientInterceptorContext<TRequest, TResponse>(context.Method, newHeaders.Item1, newHeaders.Item2));
                 }
 
                 /// <summary>

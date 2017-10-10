@@ -39,10 +39,10 @@ namespace Grpc.Core.Interceptors.Tests
             {
                 this.header = new Metadata.Entry(key, value);
             }
-            public override TResponse BlockingUnaryCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
+            public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
             {
                 context.Options.Headers.Add(this.header);
-                return continuation(context, request);
+                return continuation(request, context);
             }
 
             public Metadata.Entry Header

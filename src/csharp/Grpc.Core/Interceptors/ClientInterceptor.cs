@@ -72,21 +72,21 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Represents a continuation for intercepting simple blocking invocations.
         /// </summary>
-        public delegate TResponse BlockingUnaryCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
+        public delegate TResponse BlockingUnaryCallContinuation<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context)
             where TRequest : class
             where TResponse : class;
         
         /// <summary>
         /// Represents a continuation for intercepting simple asynchronous invocations.
         /// </summary>
-        public delegate AsyncUnaryCall<TResponse> AsyncUnaryCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
+        public delegate AsyncUnaryCall<TResponse> AsyncUnaryCallContinuation<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context)
             where TRequest : class
             where TResponse : class;
 
         /// <summary>
         /// Represents a continuation for intercepting asynchronous server-streaming invocations.
         /// </summary>
-        public delegate AsyncServerStreamingCall<TResponse> AsyncServerStreamingCallContinuation<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request)
+        public delegate AsyncServerStreamingCall<TResponse> AsyncServerStreamingCallContinuation<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context)
             where TRequest : class
             where TResponse : class;
         
@@ -107,31 +107,31 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Intercepts a blocking invocation of a simple remote call.
         /// </summary>
-        public virtual TResponse BlockingUnaryCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
+        public virtual TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return continuation(context, request);
+            return continuation(request, context);
         }
 
         /// <summary>
         /// Intercepts an asynchronous invocation of a simple remote call.
         /// </summary>
-        public virtual AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
+        public virtual AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return continuation(context, request);
+            return continuation(request, context);
         }
 
         /// <summary>
         /// Intercepts an asynchronous invocation of a streaming remote call.
         /// </summary>
-        public virtual AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, TRequest request, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
+        public virtual AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return continuation(context, request);
+            return continuation(request, context);
         }
 
         /// <summary>

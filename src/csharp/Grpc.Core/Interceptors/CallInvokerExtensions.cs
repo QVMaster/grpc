@@ -49,9 +49,9 @@ namespace Grpc.Core.Interceptors
             public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
             {
                 return interceptor.BlockingUnaryCall(
-                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
                     request,
-                    (ctx, req) => invoker.BlockingUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
+                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
+                    (req, ctx) => invoker.BlockingUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
             }
 
             /// <summary>
@@ -60,9 +60,9 @@ namespace Grpc.Core.Interceptors
             public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
             {
                 return interceptor.AsyncUnaryCall(
-                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
                     request,
-                    (ctx, req) => invoker.AsyncUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
+                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
+                    (req, ctx) => invoker.AsyncUnaryCall(ctx.Method, ctx.Host, ctx.Options, req));
             }
 
             /// <summary>
@@ -71,9 +71,9 @@ namespace Grpc.Core.Interceptors
             public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
             {
                 return interceptor.AsyncServerStreamingCall(
-                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
                     request,
-                    (ctx, req) => invoker.AsyncServerStreamingCall(ctx.Method, ctx.Host, ctx.Options, req));
+                    new ClientInterceptorContext<TRequest, TResponse>(method, host, options),
+                    (req, ctx) => invoker.AsyncServerStreamingCall(ctx.Method, ctx.Host, ctx.Options, req));
             }
 
             /// <summary>
