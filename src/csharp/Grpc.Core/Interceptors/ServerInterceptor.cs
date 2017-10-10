@@ -34,11 +34,14 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> next)
+        public virtual Task<TResponse> UnaryServerHandler<TRequest, TResponse>(
+            TRequest request,
+            ServerCallContext context,
+            UnaryServerMethod<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return next(request, context);
+            return continuation(request, context);
         }
 
         /// <summary>
@@ -46,11 +49,14 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(
+            IAsyncStreamReader<TRequest> requestStream,
+            ServerCallContext context,
+            ClientStreamingServerMethod<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return next(requestStream, context);
+            return continuation(requestStream, context);
         }
 
         /// <summary>
@@ -58,11 +64,15 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task ServerStreamingServerHandler<TRequest, TResponse>(
+            TRequest request,
+            IServerStreamWriter<TResponse> responseStream,
+            ServerCallContext context,
+            ServerStreamingServerMethod<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return next(request, responseStream, context);
+            return continuation(request, responseStream, context);
         }
 
         /// <summary>
@@ -70,35 +80,51 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         /// <typeparam name="TRequest">Request message type for this method.</typeparam>
         /// <typeparam name="TResponse">Response message type for this method.</typeparam>
-        public virtual Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> next)
+        public virtual Task DuplexStreamingServerHandler<TRequest, TResponse>(
+            IAsyncStreamReader<TRequest> requestStream,
+            IServerStreamWriter<TResponse> responseStream,
+            ServerCallContext context,
+            DuplexStreamingServerMethod<TRequest, TResponse> continuation)
             where TRequest : class
             where TResponse : class
         {
-            return next(requestStream, responseStream, context);
+            return continuation(requestStream, responseStream, context);
         }
 
         private static class WrapUtil<TRequest, TResponse>
             where TRequest : class
             where TResponse : class
         {
-            public static UnaryServerMethod<TRequest, TResponse> Unary(UnaryServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
+            public static UnaryServerMethod<TRequest, TResponse> Unary(
+                UnaryServerMethod<TRequest, TResponse> handler,
+                ServerInterceptor interceptor)
             {
-                return (request, context) => interceptor.UnaryServerHandler<TRequest, TResponse>(request, context, handler);
+                return (request, context) =>
+                    interceptor.UnaryServerHandler<TRequest, TResponse>(request, context, handler);
             }
 
-            public static ClientStreamingServerMethod<TRequest, TResponse> ClientStreaming(ClientStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
+            public static ClientStreamingServerMethod<TRequest, TResponse> ClientStreaming(
+                ClientStreamingServerMethod<TRequest, TResponse> handler,
+                ServerInterceptor interceptor)
             {
-                return (request, context) => interceptor.ClientStreamingServerHandler<TRequest, TResponse>(request, context, handler);
+                return (request, context) =>
+                    interceptor.ClientStreamingServerHandler<TRequest, TResponse>(request, context, handler);
             }
 
-            public static ServerStreamingServerMethod<TRequest, TResponse> ServerStreaming(ServerStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
+            public static ServerStreamingServerMethod<TRequest, TResponse> ServerStreaming(
+                ServerStreamingServerMethod<TRequest, TResponse> handler,
+                ServerInterceptor interceptor)
             {
-                return (request, response, context) => interceptor.ServerStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
+                return (request, response, context) =>
+                    interceptor.ServerStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
             }
 
-            public static DuplexStreamingServerMethod<TRequest, TResponse> DuplexStreaming(DuplexStreamingServerMethod<TRequest, TResponse> handler, ServerInterceptor interceptor)
+            public static DuplexStreamingServerMethod<TRequest, TResponse> DuplexStreaming(
+                DuplexStreamingServerMethod<TRequest, TResponse> handler,
+                ServerInterceptor interceptor)
             {
-                return (request, response, context) => interceptor.DuplexStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
+                return (request, response, context) =>
+                    interceptor.DuplexStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
             }
         }
 
@@ -118,19 +144,27 @@ namespace Grpc.Core.Interceptors
             var genericType = dType.GetGenericTypeDefinition();
             if (genericType == typeof(UnaryServerMethod<,>))
             {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo().MakeGenericType(dType.GetGenericArguments()).GetTypeInfo().GetMethod("Unary").Invoke(null, new object[] {d, this});
+                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
+                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
+                    .GetMethod("Unary").Invoke(null, new object[] { d, this });
             }
             else if (genericType == typeof(ClientStreamingServerMethod<,>))
             {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo().MakeGenericType(dType.GetGenericArguments()).GetTypeInfo().GetMethod("ClientStreaming").Invoke(null, new object[] {d, this});
+                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
+                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
+                    .GetMethod("ClientStreaming").Invoke(null, new object[] { d, this });
             }
             else if (genericType == typeof(ServerStreamingServerMethod<,>))
             {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo().MakeGenericType(dType.GetGenericArguments()).GetTypeInfo().GetMethod("ServerStreaming").Invoke(null, new object[] {d, this});                
+                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
+                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
+                    .GetMethod("ServerStreaming").Invoke(null, new object[] { d, this });
             }
             else if (genericType == typeof(DuplexStreamingServerMethod<,>))
             {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo().MakeGenericType(dType.GetGenericArguments()).GetTypeInfo().GetMethod("DuplexStreaming").Invoke(null, new object[] {d, this});                
+                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
+                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
+                    .GetMethod("DuplexStreaming").Invoke(null, new object[] { d, this });
             }
 
             return d;
