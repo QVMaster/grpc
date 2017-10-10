@@ -27,11 +27,28 @@ namespace Grpc.Core.Interceptors
     public static class ChannelExtensions
     {
         /// <summary>
-        /// Returns a <c>CallInvoker</c> object that intercepts a channel with the given interceptor.
+        /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts
+        /// the channel with the given interceptor.
         /// </summary>
+        /// <param name="channel">The channel to intercept.</param>
+        /// <param name="interceptor">The interceptor to intercept the channel with.</param>
         public static CallInvoker Intercept(this Channel channel, Interceptor interceptor)
         {
             return new DefaultCallInvoker(channel).Intercept(interceptor);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts
+        /// the channel with the given interceptors.
+        /// </summary>
+        /// <param name="channel">The channel to intercept.</param>
+        /// <param name="interceptors">
+        /// An array of interceptors to intercept the channel with.
+        /// Control is passed to the interceptors in the order specified.
+        /// </param>
+        public static CallInvoker Intercept(this Channel channel, params Interceptor[] interceptors)
+        {
+            return new DefaultCallInvoker(channel).Intercept(interceptors);
         }
     }
 }

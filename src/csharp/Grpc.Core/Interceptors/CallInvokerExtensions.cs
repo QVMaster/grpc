@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core.Interceptors
@@ -98,11 +99,38 @@ namespace Grpc.Core.Interceptors
         }
 
         /// <summary>
-        /// Returns a <c>CallInvoker</c> object that intercepts calls to the specified invoker via the given interceptor.
+        /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts
+        /// the invoker with the given interceptor.
         /// </summary>
+        /// <param name="invoker">The underlying invoker to intercept.</param>
+        /// <param name="interceptor">The interceptor to intercept calls to the invoker with.</param>
         public static CallInvoker Intercept(this CallInvoker invoker, Interceptor interceptor)
         {
             return new InterceptingCallInvoker(invoker, interceptor);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="Grpc.Core.CallInvoker" /> instance that intercepts
+        /// the invoker with the given interceptors.
+        /// </summary>
+        /// <param name="invoker">The channel to intercept.</param>
+        /// <param name="interceptors">
+        /// An array of interceptors to intercept the calls to the invoker with.
+        /// Control is passed to the interceptors in the order specified.
+        /// </param>
+        public static CallInvoker Intercept(this CallInvoker invoker, params Interceptor[] interceptors)
+        {
+            if (interceptors == null)
+            {
+                return invoker;
+            }
+
+            foreach (var interceptor in interceptors.Reverse())
+            {
+                invoker = Intercept(invoker, interceptor);
+            }
+
+            return invoker;
         }
     }
 }

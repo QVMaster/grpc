@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core.Interceptors
@@ -28,13 +29,40 @@ namespace Grpc.Core.Interceptors
     public static class ServerServiceDefinitionExtensions
     {
         /// <summary>
-        /// Returns a <c>ServerServiceDefinition</c> object that intercepts calls to the underlying service through the given interceptor.
+        /// Returns a <see cref="Grpc.Core.ServerServiceDefinition" /> instance that intercepts
+        /// calls to the underlying service handler via the given interceptor.
         /// </summary>
+        /// <param name="service">The service to intercept.</param>
+        /// <param name="interceptor">The interceptor to register on service.</param>
         public static ServerServiceDefinition Intercept(this ServerServiceDefinition service, Interceptor interceptor)
         {
             GrpcPreconditions.CheckNotNull(service, "service");
             GrpcPreconditions.CheckNotNull(interceptor, "interceptor");
             return service.SubstituteHandlers(interceptor.WrapServerCallHandler);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="Grpc.Core.ServerServiceDefinition" /> instance that intercepts
+        /// calls to the underlying service handler via the given interceptors.
+        /// </summary>
+        /// <param name="service">The service to intercept.</param>
+        /// <param name="interceptors">
+        /// The interceptors to register on service.
+        /// Control is passed to the interceptors in the order they are specified.
+        /// </param>
+        public static ServerServiceDefinition Intercept(this ServerServiceDefinition service, params Interceptor[] interceptors)
+        {
+            if (interceptors == null)
+            {
+                return service;
+            }
+
+            foreach (var interceptor in interceptors.Reverse())
+            {
+                service = Intercept(service, interceptor);
+            }
+
+            return service;
         }
     }
 }
