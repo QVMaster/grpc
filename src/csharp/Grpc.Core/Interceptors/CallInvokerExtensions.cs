@@ -24,11 +24,13 @@ namespace Grpc.Core.Interceptors
 {
     /// <summary>
     /// Extends the CallInvoker class to provide the interceptor facility on the client side.
+    /// This is an EXPERIMENTAL API.
     /// </summary>
     public static class CallInvokerExtensions
     {
         /// <summary>
-        /// Decorates an underlying CallInvoker to support intercept calls through a given interceptor.
+        /// Decorates an underlying <see cref="Grpc.Core.CallInvoker" /> to
+        /// intercept calls through a given interceptor.
         /// </summary>
         private class InterceptingCallInvoker : CallInvoker
         {
@@ -36,7 +38,8 @@ namespace Grpc.Core.Interceptors
             readonly Interceptor interceptor;
 
             /// <summary>
-            /// Creates a new instance of InterceptingCallInvoker with the given underlying CallInvoker and interceptor.
+            /// Creates a new instance of <see cref="Grpc.Core.Interceptors.CallInvokerExtensions.InterceptingCallInvoker" />
+            /// with the given underlying invoker and interceptor instances.
             /// </summary>
             public InterceptingCallInvoker(CallInvoker invoker, Interceptor interceptor)
             {
