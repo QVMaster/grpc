@@ -24,6 +24,26 @@ using Grpc.Core.Internal;
 namespace Grpc.Core.Interceptors
 {
     /// <summary>
+    /// Represents a server-side interceptor hookup function that takes a call context and
+    /// a handler to continue execution with and asynchronously returns a new handler,
+    /// which, when invoked, intercepts calls to and optionally passes control to
+    /// the original handler.
+    /// This is an EXPERIMENTAL API.
+    /// </summary>
+    /// <typeparam name="THandler">The type of server side handler method. It will be one of
+    /// <see cref="Grpc.Core.UnaryServerMethod{TRequest, TResponse}" />,
+    /// <see cref="Grpc.Core.ClientStreamingServerMethod{TRequest, TResponse}" />,
+    /// <see cref="Grpc.Core.ServerStreamingServerMethod{TRequest, TResponse}" />,
+    /// <see cref="Grpc.Core.DuplexStreamingServerMethod{TRequest, TResponse}" />.
+    /// </typeparam>
+    /// <param name="context">The server-side context of the call.</param>
+    /// <param name="handler">
+    /// The original handler to invoke to continue with the call.
+    /// It can be the next interceptor in the interceptor chain or the final call handler.
+    /// </param>
+    public delegate Task<THandler> ServerHandlerInterceptor<THandler>(ServerCallContext context, THandler handler);
+
+    /// <summary>
     /// Carries along the context associated with intercepted invocations on the client side.
     /// This is an EXPERIMENTAL API.
     /// </summary>
@@ -55,14 +75,12 @@ namespace Grpc.Core.Interceptors
         /// <summary>
         /// Gets the host that the currect invocation will be dispatched to.
         /// </summary>
-
         public string Host { get; }
 
         /// <summary>
         /// Gets the <see cref="Grpc.Core.CallOptions"/> structure representing the
         /// call options associated with the current invocation.
         /// </summary>
-
         public CallOptions Options { get; }
     }
 
@@ -295,96 +313,60 @@ namespace Grpc.Core.Interceptors
         }
 
         /// <summary>
-        /// Used by <c>WrapDelegate</c> function to wire up a non-generic
-        /// handler to a type-safe generic interceptor function with the
-        /// correct type arguments.
+        /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
+        /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
+        /// and a <see cref="Grpc.Core.UnaryServerMethod{TRequest, TResponse}" /> handler,
+        /// can return a new handler that intercepts the unary calls to the given handler
+        /// and passes control to it when desired.
         /// </summary>
-        private static class WrapUtil<TRequest, TResponse>
+        public virtual ServerHandlerInterceptor<UnaryServerMethod<TRequest, TResponse>> GetUnaryServerHandlerInterceptor<TRequest, TResponse>()
             where TRequest : class
             where TResponse : class
         {
-            public static UnaryServerMethod<TRequest, TResponse> Unary(
-                UnaryServerMethod<TRequest, TResponse> handler,
-                Interceptor interceptor)
-            {
-                return (request, context) =>
-                    interceptor.UnaryServerHandler<TRequest, TResponse>(request, context, handler);
-            }
-
-            public static ClientStreamingServerMethod<TRequest, TResponse> ClientStreaming(
-                ClientStreamingServerMethod<TRequest, TResponse> handler,
-                Interceptor interceptor)
-            {
-                return (request, context) =>
-                    interceptor.ClientStreamingServerHandler<TRequest, TResponse>(request, context, handler);
-            }
-
-            public static ServerStreamingServerMethod<TRequest, TResponse> ServerStreaming(
-                ServerStreamingServerMethod<TRequest, TResponse> handler,
-                Interceptor interceptor)
-            {
-                return (request, response, context) =>
-                    interceptor.ServerStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
-            }
-
-            public static DuplexStreamingServerMethod<TRequest, TResponse> DuplexStreaming(
-                DuplexStreamingServerMethod<TRequest, TResponse> handler,
-                Interceptor interceptor)
-            {
-                return (request, response, context) =>
-                    interceptor.DuplexStreamingServerHandler<TRequest, TResponse>(request, response, context, handler);
-            }
+            return (context, handler) => Task.FromResult(handler);
         }
 
         /// <summary>
-        /// Returns a wrapped delegate that intercepts the calls to the
-        /// given delegate <c>d</c> in a type-safe fashion.
-        /// This is necessary because the interceptor does not have
-        /// a priori information about the generic type of each handler
-        /// and needs to reconsturct that information by reflecting over
-        /// the delegate and matching it with the appropriate generic
-        /// interceptor function.
+        /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
+        /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
+        /// and a <see cref="Grpc.Core.ServerStreamingServerMethod{TRequest, TResponse}" /> handler,
+        /// can return a new handler that intercepts the server-streaming calls to the given handler
+        /// and passes control to it when desired.
         /// </summary>
-        private Delegate WrapDelegate(Delegate d)
+        public virtual ServerHandlerInterceptor<ServerStreamingServerMethod<TRequest, TResponse>> GetServerStreamingServerHandlerInterceptor<TRequest, TResponse>()
+            where TRequest : class
+            where TResponse : class
         {
-            if (d == null)
-            {
-                return d;
-            }
+            return (context, handler) => Task.FromResult(handler);
+        }
 
-            var dType = d.GetType().GetTypeInfo();
-            if (!dType.IsGenericType)
-            {
-                return d;
-            }
+        /// <summary>
+        /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
+        /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
+        /// and a <see cref="Grpc.Core.ClientStreamingServerMethod{TRequest, TResponse}" /> handler,
+        /// can return a new handler that intercepts the client-streaming calls to the given handler
+        /// and passes control to it when desired.
+        /// </summary>
+        public virtual ServerHandlerInterceptor<ClientStreamingServerMethod<TRequest, TResponse>> GetClientStreamingServerHandlerInterceptor<TRequest, TResponse>()
+            where TRequest : class
+            where TResponse : class
+        {
+            return (context, handler) => Task.FromResult(handler);
+        }
 
-            var genericType = dType.GetGenericTypeDefinition();
-            if (genericType == typeof(UnaryServerMethod<,>))
-            {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
-                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
-                    .GetMethod("Unary").Invoke(null, new object[] { d, this });
-            }
-            else if (genericType == typeof(ClientStreamingServerMethod<,>))
-            {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
-                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
-                    .GetMethod("ClientStreaming").Invoke(null, new object[] { d, this });
-            }
-            else if (genericType == typeof(ServerStreamingServerMethod<,>))
-            {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
-                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
-                    .GetMethod("ServerStreaming").Invoke(null, new object[] { d, this });
-            }
-            else if (genericType == typeof(DuplexStreamingServerMethod<,>))
-            {
-                return (Delegate)typeof(WrapUtil<,>).GetTypeInfo()
-                    .MakeGenericType(dType.GetGenericArguments()).GetTypeInfo()
-                    .GetMethod("DuplexStreaming").Invoke(null, new object[] { d, this });
-            }
-
-            return d;
+ 
+        /// <summary>
+        /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
+        /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
+        /// and a <see cref="Grpc.Core.DuplexStreamingServerMethod{TRequest, TResponse}" /> handler,
+        /// can return a new handler that intercepts the duplex-streaming calls to the given handler
+        /// and passes control to it when desired.
+        /// </summary>
+        public virtual ServerHandlerInterceptor<DuplexStreamingServerMethod<TRequest, TResponse>> GetDuplexStreamingServerHandlerInterceptor<TRequest, TResponse>()
+            where TRequest : class
+            where TResponse : class
+        {
+            return (context, handler) => Task.FromResult(handler);
         }
 
         /// <summary>
@@ -404,7 +386,7 @@ namespace Grpc.Core.Interceptors
                 return handler;
             }
 
-            return interceptable.Intercept(WrapDelegate);
+            return interceptable.Intercept(this);
         }
     }
 }

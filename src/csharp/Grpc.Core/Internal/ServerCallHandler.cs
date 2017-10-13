@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Core.Interceptors;
 using Grpc.Core.Internal;
 using Grpc.Core.Logging;
 using Grpc.Core.Utils;
@@ -34,8 +35,9 @@ namespace Grpc.Core.Internal
 
     internal interface IInterceptableCallHandler
     {
-        IServerCallHandler Intercept(Func<Delegate, Delegate> interceptor);
+        IServerCallHandler Intercept(Interceptor interceptor);
     }
+
 
     internal class UnaryServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
@@ -45,11 +47,13 @@ namespace Grpc.Core.Internal
 
         readonly Method<TRequest, TResponse> method;
         readonly UnaryServerMethod<TRequest, TResponse> handler;
+        readonly ServerHandlerInterceptor<UnaryServerMethod<TRequest, TResponse>> interceptor;
 
-        public UnaryServerCallHandler(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
+        public UnaryServerCallHandler(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler, ServerHandlerInterceptor<UnaryServerMethod<TRequest, TResponse>> interceptor = null)
         {
             this.method = method;
             this.handler = handler;
+            this.interceptor = interceptor;
         }
 
         public async Task HandleCall(ServerRpcNew newRpc, CompletionQueueSafeHandle cq)
@@ -69,6 +73,11 @@ namespace Grpc.Core.Internal
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
+                var handler = this.handler;
+                if (interceptor != null)
+                {
+                    handler = await interceptor(context, handler).ConfigureAwait(false);
+                }
                 GrpcPreconditions.CheckArgument(await requestStream.MoveNext().ConfigureAwait(false));
                 var request = requestStream.Current;
                 var response = await handler(request, context).ConfigureAwait(false);
@@ -79,7 +88,7 @@ namespace Grpc.Core.Internal
             {
                 if (!(e is RpcException))
                 {
-                    Logger.Warning(e, "Exception occured in handler.");
+                    Logger.Warning(e, "Exception occured in handler or interceptors.");
                 }
                 status = HandlerUtils.GetStatusFromExceptionAndMergeTrailers(e, context.ResponseTrailers);
             }
@@ -95,11 +104,26 @@ namespace Grpc.Core.Internal
             await finishedTask.ConfigureAwait(false);
         }
 
-        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        IServerCallHandler IInterceptableCallHandler.Intercept(Interceptor serverInterceptor)
         {
-            var handler = interceptor(this.handler) as UnaryServerMethod<TRequest, TResponse>;
-            GrpcPreconditions.CheckNotNull(handler);
-            return new UnaryServerCallHandler<TRequest, TResponse>(this.method, handler);
+            if (serverInterceptor == null)
+            {
+                return this;
+            }
+
+            var interceptor = serverInterceptor.GetUnaryServerHandlerInterceptor<TRequest, TResponse>();
+
+            GrpcPreconditions.CheckNotNull(interceptor);
+
+            if (this.interceptor == null)
+            {
+                return new UnaryServerCallHandler<TRequest, TResponse>(method, handler, interceptor);
+            }
+
+            return new UnaryServerCallHandler<TRequest, TResponse>(method, handler,
+                async (context, method) =>
+                    await this.interceptor(context, await interceptor(context, method).ConfigureAwait(false))
+                    .ConfigureAwait(false));
         }
     }
 
@@ -111,11 +135,13 @@ namespace Grpc.Core.Internal
 
         readonly Method<TRequest, TResponse> method;
         readonly ServerStreamingServerMethod<TRequest, TResponse> handler;
+        readonly ServerHandlerInterceptor<ServerStreamingServerMethod<TRequest, TResponse>> interceptor;
 
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
+        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler, ServerHandlerInterceptor<ServerStreamingServerMethod<TRequest, TResponse>> interceptor = null)
         {
             this.method = method;
             this.handler = handler;
+            this.interceptor = interceptor;
         }
 
         public async Task HandleCall(ServerRpcNew newRpc, CompletionQueueSafeHandle cq)
@@ -134,6 +160,11 @@ namespace Grpc.Core.Internal
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
+                var handler = this.handler;
+                if (interceptor != null)
+                {
+                    handler = await interceptor(context, handler);
+                }
                 GrpcPreconditions.CheckArgument(await requestStream.MoveNext().ConfigureAwait(false));
                 var request = requestStream.Current;
                 await handler(request, responseStream, context).ConfigureAwait(false);
@@ -143,7 +174,7 @@ namespace Grpc.Core.Internal
             {
                 if (!(e is RpcException))
                 {
-                    Logger.Warning(e, "Exception occured in handler.");
+                    Logger.Warning(e, "Exception occured in handler or interceptors.");
                 }
                 status = HandlerUtils.GetStatusFromExceptionAndMergeTrailers(e, context.ResponseTrailers);
             }
@@ -160,11 +191,26 @@ namespace Grpc.Core.Internal
             await finishedTask.ConfigureAwait(false);
         }
 
-        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        IServerCallHandler IInterceptableCallHandler.Intercept(Interceptor serverInterceptor)
         {
-            var handler = interceptor(this.handler) as ServerStreamingServerMethod<TRequest, TResponse>;
-            GrpcPreconditions.CheckNotNull(handler);
-            return new ServerStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
+            if (serverInterceptor == null)
+            {
+                return this;
+            }
+
+            var interceptor = serverInterceptor.GetServerStreamingServerHandlerInterceptor<TRequest, TResponse>();
+
+            GrpcPreconditions.CheckNotNull(interceptor);
+
+            if (this.interceptor == null)
+            {
+                return new ServerStreamingServerCallHandler<TRequest, TResponse>(method, handler, interceptor);
+            }
+
+            return new ServerStreamingServerCallHandler<TRequest, TResponse>(method, handler,
+                async (context, method) =>
+                    await this.interceptor(context, await interceptor(context, method).ConfigureAwait(false))
+                    .ConfigureAwait(false));
         }
     }
 
@@ -176,11 +222,13 @@ namespace Grpc.Core.Internal
 
         readonly Method<TRequest, TResponse> method;
         readonly ClientStreamingServerMethod<TRequest, TResponse> handler;
+        readonly ServerHandlerInterceptor<ClientStreamingServerMethod<TRequest, TResponse>> interceptor;
 
-        public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
+        public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler, ServerHandlerInterceptor<ClientStreamingServerMethod<TRequest, TResponse>> interceptor = null)
         {
             this.method = method;
             this.handler = handler;
+            this.interceptor = interceptor;
         }
 
         public async Task HandleCall(ServerRpcNew newRpc, CompletionQueueSafeHandle cq)
@@ -200,6 +248,11 @@ namespace Grpc.Core.Internal
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
+                var handler = this.handler;
+                if (interceptor != null)
+                {
+                    handler = await interceptor(context, handler);
+                }
                 var response = await handler(requestStream, context).ConfigureAwait(false);
                 status = context.Status;
                 responseTuple = Tuple.Create(response, HandlerUtils.GetWriteFlags(context.WriteOptions));
@@ -208,7 +261,7 @@ namespace Grpc.Core.Internal
             {
                 if (!(e is RpcException))
                 {
-                    Logger.Warning(e, "Exception occured in handler.");
+                    Logger.Warning(e, "Exception occured in handler or interceptor.");
                 }
                 status = HandlerUtils.GetStatusFromExceptionAndMergeTrailers(e, context.ResponseTrailers);
             }
@@ -225,11 +278,26 @@ namespace Grpc.Core.Internal
             await finishedTask.ConfigureAwait(false);
         }
 
-        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        IServerCallHandler IInterceptableCallHandler.Intercept(Interceptor serverInterceptor)
         {
-            var handler = interceptor(this.handler) as ClientStreamingServerMethod<TRequest, TResponse>;
-            GrpcPreconditions.CheckNotNull(handler);
-            return new ClientStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
+            if (serverInterceptor == null)
+            {
+                return this;
+            }
+
+            var interceptor = serverInterceptor.GetClientStreamingServerHandlerInterceptor<TRequest, TResponse>();
+
+            GrpcPreconditions.CheckNotNull(interceptor);
+
+            if (this.interceptor == null)
+            {
+                return new ClientStreamingServerCallHandler<TRequest, TResponse>(method, handler, interceptor);
+            }
+
+            return new ClientStreamingServerCallHandler<TRequest, TResponse>(method, handler,
+                async (context, method) =>
+                    await this.interceptor(context, await interceptor(context, method).ConfigureAwait(false))
+                    .ConfigureAwait(false));
         }
     }
 
@@ -241,11 +309,13 @@ namespace Grpc.Core.Internal
 
         readonly Method<TRequest, TResponse> method;
         readonly DuplexStreamingServerMethod<TRequest, TResponse> handler;
+        readonly ServerHandlerInterceptor<DuplexStreamingServerMethod<TRequest, TResponse>> interceptor;
 
-        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
+        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler, ServerHandlerInterceptor<DuplexStreamingServerMethod<TRequest, TResponse>> interceptor = null)
         {
             this.method = method;
             this.handler = handler;
+            this.interceptor = interceptor;
         }
 
         public async Task HandleCall(ServerRpcNew newRpc, CompletionQueueSafeHandle cq)
@@ -264,6 +334,11 @@ namespace Grpc.Core.Internal
             var context = HandlerUtils.NewContext(newRpc, responseStream, asyncCall.CancellationToken);
             try
             {
+                var handler = this.handler;
+                if (interceptor != null)
+                {
+                    handler = await interceptor(context, handler);
+                }
                 await handler(requestStream, responseStream, context).ConfigureAwait(false);
                 status = context.Status;
             }
@@ -271,7 +346,7 @@ namespace Grpc.Core.Internal
             {
                 if (!(e is RpcException))
                 {
-                    Logger.Warning(e, "Exception occured in handler.");
+                    Logger.Warning(e, "Exception occured in handler or interceptor.");
                 }
                 status = HandlerUtils.GetStatusFromExceptionAndMergeTrailers(e, context.ResponseTrailers);
             }
@@ -287,11 +362,26 @@ namespace Grpc.Core.Internal
             await finishedTask.ConfigureAwait(false);
         }
 
-        IServerCallHandler IInterceptableCallHandler.Intercept(Func<Delegate, Delegate> interceptor)
+        IServerCallHandler IInterceptableCallHandler.Intercept(Interceptor serverInterceptor)
         {
-            var handler = interceptor(this.handler) as DuplexStreamingServerMethod<TRequest, TResponse>;
-            GrpcPreconditions.CheckNotNull(handler);
-            return new DuplexStreamingServerCallHandler<TRequest, TResponse>(this.method, handler);
+            if (serverInterceptor == null)
+            {
+                return this;
+            }
+
+            var interceptor = serverInterceptor.GetDuplexStreamingServerHandlerInterceptor<TRequest, TResponse>();
+
+            GrpcPreconditions.CheckNotNull(interceptor);
+
+            if (this.interceptor == null)
+            {
+                return new DuplexStreamingServerCallHandler<TRequest, TResponse>(method, handler, interceptor);
+            }
+
+            return new DuplexStreamingServerCallHandler<TRequest, TResponse>(method, handler,
+                async (context, method) =>
+                    await this.interceptor(context, await interceptor(context, method).ConfigureAwait(false))
+                    .ConfigureAwait(false));
         }
     }
 
