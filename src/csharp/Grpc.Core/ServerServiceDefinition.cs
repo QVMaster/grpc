@@ -20,7 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Grpc.Core.Interceptors;
 using Grpc.Core.Internal;
+using Grpc.Core.Utils;
 
 namespace Grpc.Core
 {
@@ -47,11 +49,25 @@ namespace Grpc.Core
         }
 
         /// <summary>
-        /// Returns a new <c>ServerServiceDefinition</c> instance that substitutes each handle with a corresponding one returned by <c>map</c>.
+        /// Returns a <see cref="Grpc.Core.ServerServiceDefinition" /> instance that
+        /// intercepts calls to the underlying service handler via the given interceptor.
+        /// This is an EXPERIMENTAL API.
         /// </summary>
-        internal ServerServiceDefinition SubstituteHandlers(Func<IServerCallHandler, IServerCallHandler> map)
+        /// <param name="interceptor">The interceptor to register on service.</param>
+        public ServerServiceDefinition Intercept(Interceptor interceptor)
         {
-            return new ServerServiceDefinition(CallHandlers.ToDictionary(x => x.Key, x => map(x.Value)));
+            GrpcPreconditions.CheckNotNull(interceptor, "interceptor");
+            return new ServerServiceDefinition(CallHandlers.ToDictionary(
+                x => x.Key, x =>
+                {
+                    var value = x.Value;
+                    var interceptable = value as IInterceptableCallHandler;
+                    if (interceptable == null)
+                    {
+                        return value;
+                    }
+                    return interceptable.Intercept(interceptor);
+                }));
         }
 
         /// <summary>

@@ -354,7 +354,7 @@ namespace Grpc.Core.Interceptors
             return (context, handler) => Task.FromResult(handler);
         }
 
- 
+
         /// <summary>
         /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
         /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
@@ -367,26 +367,6 @@ namespace Grpc.Core.Interceptors
             where TResponse : class
         {
             return (context, handler) => Task.FromResult(handler);
-        }
-
-        /// <summary>
-        /// Decorates an instance of <see cref="Grpc.Core.Internal.IServerCallHandler"/>
-        /// and intercepts the execution its handlers.
-        /// </summary>
-        /// <returns>
-        /// Returns a decorated <see cref="Grpc.Core.Internal.IServerCallHandler"/>
-        /// if <c>handler</c> implements <see cref="Grpc.Core.Internal.IInterceptableCallHandler" />,
-        /// unmodified <c>handler</c> otherwise.
-        /// </returns>
-        internal IServerCallHandler WrapServerCallHandler(IServerCallHandler handler)
-        {
-            var interceptable = handler as IInterceptableCallHandler;
-            if (interceptable == null)
-            {
-                return handler;
-            }
-
-            return interceptable.Intercept(this);
         }
     }
 }

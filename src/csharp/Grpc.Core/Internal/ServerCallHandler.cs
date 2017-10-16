@@ -38,7 +38,6 @@ namespace Grpc.Core.Internal
         IServerCallHandler Intercept(Interceptor interceptor);
     }
 
-
     internal class UnaryServerCallHandler<TRequest, TResponse> : IServerCallHandler, IInterceptableCallHandler
         where TRequest : class
         where TResponse : class
