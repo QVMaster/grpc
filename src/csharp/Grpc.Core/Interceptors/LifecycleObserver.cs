@@ -168,9 +168,23 @@ namespace Grpc.Core.Interceptors
             return continuation(requestStream, responseStream, context);
         }
 
-        Task<dynamic> InterceptServerCall(ServerCallContext context)
+        interface observer
         {
-            return null;
+            Task OnBeginCall(ServerCallContext context);
+            Task OnEndCall(ServerCallContext context);
+        }
+
+        class ob : observer {
+            public Task OnBeginCall(ServerCallContext context) {
+                return Task.Run(() => Console.WriteLine("ob.OnBeginCall()"));
+            }
+            public Task OnEndCall(ServerCallContext context) {
+                return Task.Run(() => Console.WriteLine("ob.OnEndCall()"));            }
+        }
+
+        Task<observer> InterceptServerCall(ServerCallContext context)
+        {
+            return Task.FromResult((observer)new ob());
         }
 
         /// <summary>
@@ -217,27 +231,6 @@ namespace Grpc.Core.Interceptors
             return (context, handler) => Task.FromResult(handler);
         }
 
-
-        private class InterceptingStreamReader<T> : IAsyncStreamReader<T>
-        {
-            readonly IAsyncStreamReader<T> reader;
-            T current;
-
-            public InterceptingStreamReader(IAsyncStreamReader<T> reader)
-            {
-                this.reader = reader;
-            }
-
-            public void Dispose()
-            {
-                reader.Dispose();
-            }
-
-            public T Current
-            {
-                get; private set;
-            }
-        }
         static IAsyncStreamReader<T> InterceptStreamReader<T>(IAsyncStreamReader<T> reader, Func<T,T> hook)
         {
             return reader;
@@ -260,10 +253,14 @@ namespace Grpc.Core.Interceptors
                     return handler;
                 }
 
-                return async (originalRequestStream, originalResponseStream, context) => {
-                    IAsyncStreamReader<TargetException>
-                    handler
-                };
+                // interceptor.OnBeginCall
+                return new DuplexStreamingServerMethod<TRequest, TResponse>(async (originalRequestStream, originalResponseStream, ctx) => { 
+                    await interceptor.OnBeginCall(ctx);
+                    IAsyncStreamReader<TRequest> newRequestStream = originalRequestStream;
+                    IServerStreamWriter<TResponse> newResponseStream = originalResponseStream;
+                    await handler(newRequestStream, newResponseStream, ctx);
+                    await interceptor.OnEndCall(ctx);
+                });
             };
         }
     }
