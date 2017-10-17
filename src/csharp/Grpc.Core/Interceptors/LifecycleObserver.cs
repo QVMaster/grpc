@@ -188,11 +188,8 @@ namespace Grpc.Core.Interceptors
                 {
                     return handler;
                 }
-                if (interceptor.OnBeginCall != null)
-                {
-                    context = await interceptor.OnBeginCall(context);
-                }
-                return (request, context) => 
+
+                return null;
             };
         }
 
@@ -221,6 +218,32 @@ namespace Grpc.Core.Interceptors
         }
 
 
+        private class InterceptingStreamReader<T> : IAsyncStreamReader<T>
+        {
+            readonly IAsyncStreamReader<T> reader;
+            T current;
+
+            public InterceptingStreamReader(IAsyncStreamReader<T> reader)
+            {
+                this.reader = reader;
+            }
+
+            public void Dispose()
+            {
+                reader.Dispose();
+            }
+
+            public T Current
+            {
+                get; private set;
+            }
+        }
+        static IAsyncStreamReader<T> InterceptStreamReader<T>(IAsyncStreamReader<T> reader, Func<T,T> hook)
+        {
+            return reader;
+        }
+
+
         /// <summary>
         /// Returns a <see cref="Grpc.Core.Interceptors.ServerHandlerInterceptor{THandler}" />
         /// function that when invoked with a <see cref="Grpc.Core.ServerCallContext" /> instance and
@@ -230,7 +253,18 @@ namespace Grpc.Core.Interceptors
         /// </summary>
         public override ServerHandlerInterceptor<DuplexStreamingServerMethod<TRequest, TResponse>> GetDuplexStreamingServerHandlerInterceptor<TRequest, TResponse>()
         {
-            return (context, handler) => Task.FromResult(handler);
+            return async (context, handler) => {
+                var interceptor = await InterceptServerCall(context).ConfigureAwait(false);
+                if (interceptor == null)
+                {
+                    return handler;
+                }
+
+                return async (originalRequestStream, originalResponseStream, context) => {
+                    IAsyncStreamReader<TargetException>
+                    handler
+                };
+            };
         }
     }
 }
