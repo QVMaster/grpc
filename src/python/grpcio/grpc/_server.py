@@ -23,6 +23,7 @@ import six
 
 import grpc
 from grpc import _common
+from grpc import _interceptor
 from grpc._cython import cygrpc
 from grpc.framework.foundation import callable_util
 
@@ -549,16 +550,22 @@ def _handle_stream_stream(rpc_event, state, method_handler, thread_pool):
         method_handler.request_deserializer, method_handler.response_serializer)
 
 
-def _find_method_handler(rpc_event, generic_handlers):
-    for generic_handler in generic_handlers:
-        method_handler = generic_handler.service(
-            _HandlerCallDetails(
-                _common.decode(rpc_event.request_call_details.method),
-                rpc_event.request_metadata))
-        if method_handler is not None:
-            return method_handler
-    else:
+def _find_method_handler(rpc_event, interceptors, generic_handlers):
+
+    def handler_factory(rpc_event):
+        for generic_handler in generic_handlers:
+            method_handler = generic_handler.service(
+                _HandlerCallDetails(
+                    _common.decode(rpc_event.request_call_details.method),
+                    rpc_event.request_metadata))
+            if method_handler is not None:
+                return method_handler
         return None
+
+    if interceptors is None:
+        return handler_factory(rpc_event)
+
+    return _interceptor.intercept_service_handler(interceptors, handler_factory, rpc_event)
 
 
 def _reject_rpc(rpc_event, status, details):
@@ -597,13 +604,14 @@ def _handle_with_method_handler(rpc_event, method_handler, thread_pool):
                                                   method_handler, thread_pool)
 
 
-def _handle_call(rpc_event, generic_handlers, thread_pool,
+def _handle_call(rpc_event, generic_handlers, interceptors, thread_pool,
                  concurrency_exceeded):
     if not rpc_event.success:
         return None, None
     if rpc_event.request_call_details.method is not None:
         try:
-            method_handler = _find_method_handler(rpc_event, generic_handlers)
+            method_handler = _find_method_handler(rpc_event, interceptors,
+                                                  generic_handlers)
         except Exception as exception:  # pylint: disable=broad-except
             details = 'Exception servicing handler: {}'.format(exception)
             logging.exception(details)
@@ -631,12 +639,13 @@ class _ServerStage(enum.Enum):
 
 class _ServerState(object):
 
-    def __init__(self, completion_queue, server, generic_handlers, thread_pool,
-                 maximum_concurrent_rpcs):
+    def __init__(self, completion_queue, server, generic_handlers, interceptors,
+                 thread_pool, maximum_concurrent_rpcs):
         self.lock = threading.Lock()
         self.completion_queue = completion_queue
         self.server = server
         self.generic_handlers = list(generic_handlers)
+        self.interceptors = list(interceptors)
         self.thread_pool = thread_pool
         self.stage = _ServerStage.STOPPED
         self.shutdown_events = None
@@ -701,8 +710,8 @@ def _serve(state):
                     state.maximum_concurrent_rpcs is not None and
                     state.active_rpc_count >= state.maximum_concurrent_rpcs)
                 rpc_state, rpc_future = _handle_call(
-                    event, state.generic_handlers, state.thread_pool,
-                    concurrency_exceeded)
+                    event, state.generic_handlers, state.interceptors,
+                    state.thread_pool, concurrency_exceeded)
                 if rpc_state is not None:
                     state.rpc_states.add(rpc_state)
                 if rpc_future is not None:
@@ -790,13 +799,14 @@ def _start(state):
 
 class Server(grpc.Server):
 
-    def __init__(self, thread_pool, generic_handlers, options,
+    def __init__(self, thread_pool, generic_handlers, interceptors, options,
                  maximum_concurrent_rpcs):
         completion_queue = cygrpc.CompletionQueue()
         server = cygrpc.Server(_common.channel_args(options))
         server.register_completion_queue(completion_queue)
         self._state = _ServerState(completion_queue, server, generic_handlers,
-                                   thread_pool, maximum_concurrent_rpcs)
+                                   interceptors, thread_pool,
+                                   maximum_concurrent_rpcs)
 
     def add_generic_rpc_handlers(self, generic_rpc_handlers):
         _add_generic_handlers(self._state, generic_rpc_handlers)
