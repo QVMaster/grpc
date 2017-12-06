@@ -72,3 +72,6 @@ class ServicerContext(grpc.ServicerContext):
 
     def set_details(self, details):
         self._rpc.set_details(details)
+
+    def abort(self, code, details):
+        raise NotImplementedError()

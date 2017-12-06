@@ -96,6 +96,7 @@ class _RPCState(object):
         self.statused = False
         self.rpc_errors = []
         self.callbacks = []
+        self.abortion = None
 
 
 def _raise_rpc_error(state):
@@ -286,6 +287,13 @@ class _Context(grpc.ServicerContext):
         with self._state.condition:
             self._state.details = _common.encode(details)
 
+    def abort(self, code, details):
+        with self._state.condition:
+            self._state.code = code
+            self._state.details = details
+            self._state.abortion = Exception()
+            raise self._state.abortion
+
 
 class _RequestIterator(object):
 
@@ -376,7 +384,10 @@ def _call_behavior(rpc_event, state, behavior, argument, request_deserializer):
         return behavior(argument, context), True
     except Exception as exception:  # pylint: disable=broad-except
         with state.condition:
-            if exception not in state.rpc_errors:
+            if exception == state.abortion:
+                _abort(state, rpc_event.operation_call,
+                       cygrpc.StatusCode.unknown, b'')
+            elif exception not in state.rpc_errors:
                 details = 'Exception calling application: {}'.format(exception)
                 logging.exception(details)
                 _abort(state, rpc_event.operation_call,

@@ -858,6 +858,21 @@ class ServicerContext(six.with_metaclass(abc.ABCMeta, RpcContext)):
     """
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def abort(self, code, details):
+        """Terminates the current RPC with a non-OK by raising an exception
+    status code.
+
+    The code and details passed as arguments will supercede the existing ones.
+
+    Args:
+      code: A StatusCode object to be sent to the client. It should not be OK.
+      details: An arbitrary string to be sent to the client upon completion.
+
+    Raises:
+      Exception: An exception is always raised to signal the abortion the RPC.
+    """
+
 
 #####################  Service-Side Handler Interfaces  ########################
 
