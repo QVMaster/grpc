@@ -13,6 +13,8 @@
 # limitations under the License.
 """Implementation of gRPC Python interceptors."""
 
+import grpc
+
 
 class _ServicePipeline(object):
 
@@ -37,3 +39,147 @@ def service_pipeline(interceptors):
     if interceptors:
         return _ServicePipeline(interceptors)
     return None
+
+
+class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
+
+    def __init__(self, thunk, method, interceptor):
+        self._thunk = thunk
+        self._method = method
+        self._interceptor = interceptor
+
+    def __call__(self, *args, **kwargs):
+        future = self.future(*args, **kwargs)
+        return future.result()
+
+    def with_call(self, *args, **kwargs):
+        future = self.future(*args, **kwargs)
+        return future.result(), future
+
+    def future(self, *args, **kwargs):
+
+        def continuation(method, *args, **kwargs):
+            return self._thunk(method).future(*args, **kwargs)
+
+        return self._interceptor.intercept_unary_unary(
+            continuation, self._method, *args, **kwargs)
+
+
+class _UnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
+
+    def __init__(self, thunk, method, interceptor):
+        self._thunk = thunk
+        self._method = method
+        self._interceptor = interceptor
+
+    def __call__(self, *args, **kwargs):
+
+        def continuation(method, *args, **kwargs):
+            return self._thunk(method)(*args, **kwargs)
+
+        return self._interceptor.intercept_unary_stream(
+            continuation, self._method, *args, **kwargs)
+
+
+class _StreamUnaryMultiCallable(grpc.StreamUnaryMultiCallable):
+
+    def __init__(self, thunk, method, interceptor):
+        self._thunk = thunk
+        self._method = method
+        self._interceptor = interceptor
+
+    def __call__(self, *args, **kwargs):
+        future = self.future(*args, **kwargs)
+        return future.result()
+
+    def with_call(self, *args, **kwargs):
+        future = self.future(*args, **kwargs)
+        return future.result(), future
+
+    def future(self, *args, **kwargs):
+
+        def continuation(method, *args, **kwargs):
+            return self._thunk(method).future(*args, **kwargs)
+
+        return self._interceptor.intercept_stream_unary(
+            continuation, self._method, *args, **kwargs)
+
+
+class _StreamStreamMultiCallable(grpc.StreamStreamMultiCallable):
+
+    def __init__(self, thunk, method, interceptor):
+        self._thunk = thunk
+        self._method = method
+        self._interceptor = interceptor
+
+    def __call__(self, *args, **kwargs):
+
+        def continuation(method, *args, **kwargs):
+            return self._thunk(method)(*args, **kwargs)
+
+        return self._interceptor.intercept_stream_stream(
+            continuation, self._method, *args, **kwargs)
+
+
+class _Channel(grpc.Channel):
+
+    def __init__(self, channel, interceptor):
+        self._channel = channel
+        self._interceptor = interceptor
+
+    def subscribe(self, *args, **kwargs):
+        self._channel.subscribe(*args, **kwargs)
+
+    def unsubscribe(self, *args, **kwargs):
+        self._channel.unsubscribe(*args, **kwargs)
+
+    def unary_unary(self,
+                    method,
+                    request_serializer=None,
+                    response_deserializer=None):
+        thunk = lambda m: self._channel.unary_unary(m, request_serializer, response_deserializer)
+        if isinstance(self._interceptor, grpc.UnaryUnaryClientInterceptor):
+            return _UnaryUnaryMultiCallable(thunk, method, self._interceptor)
+        return thunk(method)
+
+    def unary_stream(self,
+                     method,
+                     request_serializer=None,
+                     response_deserializer=None):
+        thunk = lambda m: self._channel.unary_stream(m, request_serializer, response_deserializer)
+        if isinstance(self._interceptor, grpc.UnaryStreamClientInterceptor):
+            return _UnaryStreamMultiCallable(thunk, method, self._interceptor)
+        return thunk(method)
+
+    def stream_unary(self,
+                     method,
+                     request_serializer=None,
+                     response_deserializer=None):
+        thunk = lambda m: self._channel.stream_unary(m, request_serializer, response_deserializer)
+        if isinstance(self._interceptor, grpc.StreamUnaryClientInterceptor):
+            return _StreamUnaryMultiCallable(thunk, method, self._interceptor)
+        return thunk(method)
+
+    def stream_stream(self,
+                      method,
+                      request_serializer=None,
+                      response_deserializer=None):
+        thunk = lambda m: self._channel.stream_stream(m, request_serializer, response_deserializer)
+        if isinstance(self._interceptor, grpc.StreamStreamClientInterceptor):
+            return _StreamStreamMultiCallable(thunk, method, self._interceptor)
+        return thunk(method)
+
+
+def intercept_channel(channel, *interceptors):
+    for interceptor in reversed(list(interceptors)):
+        if not isinstance(interceptor, grpc.UnaryUnaryClientInterceptor) and \
+           not isinstance(interceptor, grpc.UnaryStreamClientInterceptor) and \
+           not isinstance(interceptor, grpc.StreamUnaryClientInterceptor) and \
+           not isinstance(interceptor, grpc.StreamStreamClientInterceptor):
+            raise TypeError('interceptor must be '
+                            'grpc.UnaryUnaryClientInterceptor or '
+                            'grpc.UnaryStreamClientInterceptor or '
+                            'grpc.StreamUnaryClientInterceptor or '
+                            'grpc.StreamStreamClientInterceptor or ')
+        channel = _Channel(channel, interceptor)
+    return channel
