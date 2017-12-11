@@ -347,8 +347,15 @@ class Call(six.with_metaclass(abc.ABCMeta, RpcContext)):
 
 class ClientCallDetails(six.with_metaclass(abc.ABCMeta)):
     """Describes an RPC to be invoked.
+
     Attributes:
       method: The method name of the RPC.
+      request_streaming: True if the RPC is request-streaming.
+      response_streaming: True if the RPC is response-streaming.
+      request_serializer: Optional behavior for serializing the request
+        message. Request goes unserialized in case None is passed.
+      response_deserializer: Optional behavior for deserializing the response
+        message. Response goes undeserialized in case None is passed.
       timeout: An optional duration of time in seconds to allow for the RPC.
       metadata: Optional :term:`metadata` to be transmitted to
         the service-side of the RPC.
@@ -356,128 +363,16 @@ class ClientCallDetails(six.with_metaclass(abc.ABCMeta)):
     """
 
 
-class UnaryUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
-    """Affords intercepting unary-unary invocations.
+class ClientInterceptor(six.with_metaclass(abc.ABCMeta)):
+    """Affords intercepting outgoing RPC invocations.
 
     This is an EXPERIMENTAL API.
     """
 
     @abc.abstractmethod
-    def intercept_unary_unary(self, continuation, client_call_details, request):
-        """Intercepts a unary-unary invocation asynchronously.
-
-        Args:
-          continuation: A function that proceeds with the invocation by
-            executing the next interceptor in chain or invoking the
-            actual RPC on the underlying Channel. It is the interceptor's
-            responsibility to call it if it decides to move the RPC forward.
-            The interceptor can use
-            `response_future = continuation(client_call_details, request)`
-            to continue with the RPC. `continuation` returns an object that is
-            both a Call for the RPC and a Future. In the event of RPC
-            completion, the return Call-Future's result value will be
-            the response message of the RPC. Should the event terminate
-            with non-OK status, the returned Call-Future's exception value
-            will be an RpcError.
-          client_call_details: A ClientCallDetails object describing the
-            outgoing RPC.
-          request: The request value for the RPC.
-
-        Returns:
-            An object that is both a Call for the RPC and a Future.
-            In the event of RPC completion, the return Call-Future's
-            result value will be the response message of the RPC.
-            Should the event terminate with non-OK status, the returned
-            Call-Future's exception value will be an RpcError.
-        """
-        raise NotImplementedError()
-
-
-class UnaryStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
-    """Affords intercepting unary-stream invocations.
-
-    This is an EXPERIMENTAL API.
-    """
-
-    @abc.abstractmethod
-    def intercept_unary_stream(self, continuation, client_call_details,
-                               request):
-        """Intercepts a unary-stream invocation.
-
-        Args:
-          continuation: A function that proceeds with the invocation by
-            executing the next interceptor in chain or invoking the
-            actual RPC on the underlying Channel. It is the interceptor's
-            responsibility to call it if it decides to move the RPC forward.
-            The interceptor can use
-            `response_iterator = continuation(client_call_details, request)`
-            to continue with the RPC. `continuation` returns an object that is
-            both a Call for the RPC and an iterator for response values.
-            Drawing response values from the returned Call-iterator may
-            raise RpcError indicating termination of the RPC with non-OK
-            status.
-          client_call_details: A ClientCallDetails object describing the
-            outgoing RPC.
-          request: The request value for the RPC.
-
-
-        Returns:
-            An object that is both a Call for the RPC and an iterator of
-            response values. Drawing response values from the returned
-            Call-iterator may raise RpcError indicating termination of
-            the RPC with non-OK status.
-        """
-        raise NotImplementedError()
-
-
-class StreamUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
-    """Affords intercepting stream-unary invocations.
-
-    This is an EXPERIMENTAL API.
-    """
-
-    @abc.abstractmethod
-    def intercept_stream_unary(self, continuation, client_call_details,
-                               request_iterator):
-        """Intercepts a stream-unary invocation asynchronously.
-
-        Args:
-          continuation: A function that proceeds with the invocation by
-            executing the next interceptor in chain or invoking the
-            actual RPC on the underlying Channel. It is the interceptor's
-            responsibility to call it if it decides to move the RPC forward.
-            The interceptor can use
-            `response_future = continuation(client_call_details,
-                                            request_iterator)`
-            to continue with the RPC. `continuation` returns an object that is
-            both a Call for the RPC and a Future. In the event of RPC completion,
-            the return Call-Future's result value will be the response message
-            of the RPC. Should the event terminate with non-OK status, the
-            returned Call-Future's exception value will be an RpcError.
-          client_call_details: A ClientCallDetails object describing the
-            outgoing RPC.
-          request_iterator: An iterator that yields request values for the RPC.
-
-        Returns:
-            An object that is both a Call for the RPC and a Future.
-            In the event of RPC completion, the return Call-Future's
-            result value will be the response message of the RPC.
-            Should the event terminate with non-OK status, the returned
-            Call-Future's exception value will be an RpcError.
-        """
-        raise NotImplementedError()
-
-
-class StreamStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
-    """Affords intercepting stream-stream invocations.
-
-    This is an EXPERIMENTAL API.
-    """
-
-    @abc.abstractmethod
-    def intercept_stream_stream(self, continuation, client_call_details,
-                                request_iterator):
-        """Intercepts a stream-stream invocation.
+    def intercept_call(self, continuation, client_call_details,
+                       request_iterator):
+        """Intercepts an outgoing RPC invocation.
 
           continuation: A function that proceeds with the invocation by
             executing the next interceptor in chain or invoking the
