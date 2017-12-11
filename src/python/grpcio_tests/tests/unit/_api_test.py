@@ -39,7 +39,7 @@ class AllTest(unittest.TestCase):
             'RpcMethodHandler', 'HandlerCallDetails', 'GenericRpcHandler',
             'ServiceRpcHandler', 'Server', 'ServerInterceptor',
             'unary_unary_rpc_method_handler', 'unary_stream_rpc_method_handler',
-            'stream_unary_rpc_method_handler',
+            'stream_unary_rpc_method_handler', 'ClientCallDetails',
             'stream_stream_rpc_method_handler',
             'method_handlers_generic_handler', 'ssl_channel_credentials',
             'metadata_call_credentials', 'access_token_call_credentials',

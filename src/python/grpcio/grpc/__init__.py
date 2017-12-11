@@ -345,6 +345,17 @@ class Call(six.with_metaclass(abc.ABCMeta, RpcContext)):
 ##############  Invocation-Side Interceptor Interfaces & Classes  ##############
 
 
+class ClientCallDetails(six.with_metaclass(abc.ABCMeta)):
+    """Describes an RPC to be invoked.
+    Attributes:
+      method: The method name of the RPC.
+      timeout: An optional duration of time in seconds to allow for the RPC.
+      metadata: Optional :term:`metadata` to be transmitted to
+        the service-side of the RPC.
+      credentials: An optional CallCredentials for the RPC.
+    """
+
+
 class UnaryUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
     """Affords intercepting unary-unary invocations.
 
@@ -352,7 +363,7 @@ class UnaryUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
     """
 
     @abc.abstractmethod
-    def intercept_unary_unary(self, continuation, method, request, **kwargs):
+    def intercept_unary_unary(self, continuation, client_call_details, request):
         """Intercepts a unary-unary invocation asynchronously.
 
         Args:
@@ -361,14 +372,15 @@ class UnaryUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
             actual RPC on the underlying Channel. It is the interceptor's
             responsibility to call it if it decides to move the RPC forward.
             The interceptor can use
-            `response_future = continuation(method, request, **kwargs)`
+            `response_future = continuation(client_call_details, request)`
             to continue with the RPC. `continuation` returns an object that is
             both a Call for the RPC and a Future. In the event of RPC
             completion, the return Call-Future's result value will be
             the response message of the RPC. Should the event terminate
             with non-OK status, the returned Call-Future's exception value
             will be an RpcError.
-          method: The name of the RPC method.
+          client_call_details: A ClientCallDetails object describing the
+            outgoing RPC.
           request: The request value for the RPC.
 
         Returns:
@@ -388,7 +400,8 @@ class UnaryStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
     """
 
     @abc.abstractmethod
-    def intercept_unary_stream(self, continuation, method, request, **kwargs):
+    def intercept_unary_stream(self, continuation, client_call_details,
+                               request):
         """Intercepts a unary-stream invocation.
 
         Args:
@@ -397,14 +410,16 @@ class UnaryStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
             actual RPC on the underlying Channel. It is the interceptor's
             responsibility to call it if it decides to move the RPC forward.
             The interceptor can use
-            `response_iterator = continuation(method, request, **kwargs)`
+            `response_iterator = continuation(client_call_details, request)`
             to continue with the RPC. `continuation` returns an object that is
             both a Call for the RPC and an iterator for response values.
             Drawing response values from the returned Call-iterator may
             raise RpcError indicating termination of the RPC with non-OK
             status.
-          method: The name of the RPC method.
+          client_call_details: A ClientCallDetails object describing the
+            outgoing RPC.
           request: The request value for the RPC.
+
 
         Returns:
             An object that is both a Call for the RPC and an iterator of
@@ -422,8 +437,8 @@ class StreamUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
     """
 
     @abc.abstractmethod
-    def intercept_stream_unary(self, continuation, method, request_iterator,
-                               **kwargs):
+    def intercept_stream_unary(self, continuation, client_call_details,
+                               request_iterator):
         """Intercepts a stream-unary invocation asynchronously.
 
         Args:
@@ -432,14 +447,15 @@ class StreamUnaryClientInterceptor(six.with_metaclass(abc.ABCMeta)):
             actual RPC on the underlying Channel. It is the interceptor's
             responsibility to call it if it decides to move the RPC forward.
             The interceptor can use
-            `response_future = continuation(method, request_iterator,
-                                            **kwargs)`
+            `response_future = continuation(client_call_details,
+                                            request_iterator)`
             to continue with the RPC. `continuation` returns an object that is
             both a Call for the RPC and a Future. In the event of RPC completion,
             the return Call-Future's result value will be the response message
             of the RPC. Should the event terminate with non-OK status, the
             returned Call-Future's exception value will be an RpcError.
-          method: The name of the RPC method.
+          client_call_details: A ClientCallDetails object describing the
+            outgoing RPC.
           request_iterator: An iterator that yields request values for the RPC.
 
         Returns:
@@ -459,8 +475,8 @@ class StreamStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
     """
 
     @abc.abstractmethod
-    def intercept_stream_stream(self, continuation, method, request_iterator,
-                                **kwargs):
+    def intercept_stream_stream(self, continuation, client_call_details,
+                                request_iterator):
         """Intercepts a stream-stream invocation.
 
           continuation: A function that proceeds with the invocation by
@@ -468,14 +484,15 @@ class StreamStreamClientInterceptor(six.with_metaclass(abc.ABCMeta)):
             actual RPC on the underlying Channel. It is the interceptor's
             responsibility to call it if it decides to move the RPC forward.
             The interceptor can use
-            `response_iterator = continuation(method, request_iterator,
-                                              **kwargs)`
+            `response_iterator = continuation(client_call_details,
+                                              request_iterator)`
             to continue with the RPC. `continuation` returns an object that is
             both a Call for the RPC and an iterator for response values.
             Drawing response values from the returned Call-iterator may
             raise RpcError indicating termination of the RPC with non-OK
             status.
-          method: The name of the RPC method.
+          client_call_details: A ClientCallDetails object describing the
+            outgoing RPC.
           request_iterator: An iterator that yields request values for the RPC.
 
         Returns:
@@ -615,7 +632,7 @@ class UnaryUnaryMultiCallable(six.with_metaclass(abc.ABCMeta)):
 
     Args:
       request: The request value for the RPC.
-      timeout: An optional durating of time in seconds to allow for the RPC.
+      timeout: An optional duration of time in seconds to allow for the RPC.
       metadata: Optional :term:`metadata` to be transmitted to the
         service-side of the RPC.
       credentials: An optional CallCredentials for the RPC.
@@ -1615,7 +1632,7 @@ __all__ = (
     'FutureTimeoutError', 'FutureCancelledError', 'Future',
     'ChannelConnectivity', 'StatusCode', 'RpcError', 'RpcContext', 'Call',
     'ChannelCredentials', 'CallCredentials', 'AuthMetadataContext',
-    'AuthMetadataPluginCallback', 'AuthMetadataPlugin',
+    'AuthMetadataPluginCallback', 'AuthMetadataPlugin', 'ClientCallDetails',
     'ServerCertificateConfiguration', 'ServerCredentials',
     'UnaryUnaryMultiCallable', 'UnaryStreamMultiCallable',
     'StreamUnaryMultiCallable', 'StreamStreamMultiCallable',
