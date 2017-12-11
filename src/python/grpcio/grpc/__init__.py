@@ -1468,22 +1468,14 @@ def intercept_channel(channel, *interceptors):
 
     Args:
       channel: A Channel.
-      interceptors: Zero or more objects of type
-        UnaryUnaryClientInterceptor,
-        UnaryStreamClientInterceptor,
-        StreamUnaryClientInterceptor, or
-        StreamStreamClientInterceptor.
+      interceptors: Zero or more objects of type ClientInterceptor,
         Interceptors are given control in the order they are listed.
 
     Returns:
       A Channel that intercepts each invocation via the provided interceptors.
 
     Raises:
-      TypeError: If interceptor does not derive from any of
-        UnaryUnaryClientInterceptor,
-        UnaryStreamClientInterceptor,
-        StreamUnaryClientInterceptor, or
-        StreamStreamClientInterceptor.
+      TypeError: If interceptor does not derive from ClientInterceptor.
     """
     from grpc import _interceptor  # pylint: disable=cyclic-import
     return _interceptor.intercept_channel(channel, *interceptors)
@@ -1530,19 +1522,18 @@ __all__ = (
     'AuthMetadataPluginCallback', 'AuthMetadataPlugin', 'ClientCallDetails',
     'ServerCertificateConfiguration', 'ServerCredentials',
     'UnaryUnaryMultiCallable', 'UnaryStreamMultiCallable',
-    'StreamUnaryMultiCallable', 'StreamStreamMultiCallable',
-    'UnaryUnaryClientInterceptor', 'UnaryStreamClientInterceptor',
-    'StreamUnaryClientInterceptor', 'StreamStreamClientInterceptor', 'Channel',
+    'StreamUnaryMultiCallable', 'StreamStreamMultiCallable', 'Channel',
     'ServicerContext', 'RpcMethodHandler', 'HandlerCallDetails',
-    'GenericRpcHandler', 'ServiceRpcHandler', 'Server', 'ServerInterceptor',
-    'unary_unary_rpc_method_handler', 'unary_stream_rpc_method_handler',
-    'stream_unary_rpc_method_handler', 'stream_stream_rpc_method_handler',
-    'method_handlers_generic_handler', 'ssl_channel_credentials',
-    'metadata_call_credentials', 'access_token_call_credentials',
-    'composite_call_credentials', 'composite_channel_credentials',
-    'ssl_server_credentials', 'ssl_server_certificate_configuration',
-    'dynamic_ssl_server_credentials', 'channel_ready_future',
-    'insecure_channel', 'secure_channel', 'intercept_channel', 'server',)
+    'GenericRpcHandler', 'ServiceRpcHandler', 'Server', 'ClientInterceptor',
+    'ServerInterceptor', 'unary_unary_rpc_method_handler',
+    'unary_stream_rpc_method_handler', 'stream_unary_rpc_method_handler',
+    'stream_stream_rpc_method_handler', 'method_handlers_generic_handler',
+    'ssl_channel_credentials', 'metadata_call_credentials',
+    'access_token_call_credentials', 'composite_call_credentials',
+    'composite_channel_credentials', 'ssl_server_credentials',
+    'ssl_server_certificate_configuration', 'dynamic_ssl_server_credentials',
+    'channel_ready_future', 'insecure_channel', 'secure_channel',
+    'intercept_channel', 'server',)
 
 ############################### Extension Shims ################################
 
