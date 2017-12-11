@@ -65,7 +65,8 @@ def _continuation(thunk):
 
 class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
 
-    def __init__(self, thunk, interceptor, method, request_serializer, response_deserializer):
+    def __init__(self, thunk, interceptor, method, request_serializer,
+                 response_deserializer):
         self._thunk = thunk
         self._interceptor = interceptor
         self._method = method
@@ -92,13 +93,16 @@ class _UnaryUnaryMultiCallable(grpc.UnaryUnaryMultiCallable):
 
         response_iterator = self._interceptor.intercept_call(
             _continuation(self._thunk),
-            _ClientCallDetails(self._method, False, False, self._request_serializer, self._response_deserializer, timeout, metadata, credentials),
+            _ClientCallDetails(
+                self._method, False, False, self._request_serializer,
+                self._response_deserializer, timeout, metadata, credentials),
             (request,))
 
 
 class _UnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
 
-    def __init__(self, thunk, interceptor, method, request_serializer, response_deserializer):
+    def __init__(self, thunk, interceptor, method, request_serializer,
+                 response_deserializer):
         self._thunk = thunk
         self._interceptor = interceptor
         self._method = method
@@ -119,10 +123,10 @@ class _UnaryStreamMultiCallable(grpc.UnaryStreamMultiCallable):
             credentials=client_call_details.credentials)
 
 
-
 class _StreamUnaryMultiCallable(grpc.StreamUnaryMultiCallable):
 
-    def __init__(self, thunk, interceptor, method, request_serializer, response_deserializer):
+    def __init__(self, thunk, interceptor, method, request_serializer,
+                 response_deserializer):
         self._thunk = thunk
         self._interceptor = interceptor
         self._method = method
@@ -174,7 +178,8 @@ class _StreamUnaryMultiCallable(grpc.StreamUnaryMultiCallable):
 
 class _StreamStreamMultiCallable(grpc.StreamStreamMultiCallable):
 
-    def __init__(self, thunk, interceptor, method, request_serializer, response_deserializer):
+    def __init__(self, thunk, interceptor, method, request_serializer,
+                 response_deserializer):
         self._thunk = thunk
         self._interceptor = interceptor
         self._method = method
@@ -216,25 +221,33 @@ class _Channel(grpc.Channel):
                     method,
                     request_serializer=None,
                     response_deserializer=None):
-        return _UnaryUnaryMultiCallable(self._thunk, self._interceptor, method, request_serializer, response_deserializer)
+        return _UnaryUnaryMultiCallable(self._thunk, self._interceptor, method,
+                                        request_serializer,
+                                        response_deserializer)
 
     def unary_stream(self,
                      method,
                      request_serializer=None,
                      response_deserializer=None):
-        return _UnaryStreamMultiCallable(self._thunk, self._interceptor, method, request_serializer, response_deserializer)
+        return _UnaryStreamMultiCallable(self._thunk, self._interceptor, method,
+                                         request_serializer,
+                                         response_deserializer)
 
     def stream_unary(self,
                      method,
                      request_serializer=None,
                      response_deserializer=None):
-        return _StreamUnaryMultiCallable(self._thunk, self._interceptor, method, request_serializer, response_deserializer)
+        return _StreamUnaryMultiCallable(self._thunk, self._interceptor, method,
+                                         request_serializer,
+                                         response_deserializer)
 
     def stream_stream(self,
                       method,
                       request_serializer=None,
                       response_deserializer=None):
-        return _StreamStreamMultiCallable(self._thunk, self._interceptor, method, request_serializer, response_deserializer)
+        return _StreamStreamMultiCallable(self._thunk, self._interceptor,
+                                          method, request_serializer,
+                                          response_deserializer)
 
     def _thunk(self, call):
         if not call.request_streaming and not call.response_streaming:
