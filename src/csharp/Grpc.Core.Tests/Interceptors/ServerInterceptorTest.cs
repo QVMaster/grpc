@@ -75,5 +75,39 @@ namespace Grpc.Core.Interceptors.Tests
             var channel = helper.GetChannel();
             Assert.AreEqual("PASS", Calls.BlockingUnaryCall(helper.CreateUnaryCall(), ""));
         }
+
+        private class ArbitraryActionInterceptor : GenericInterceptor
+        {
+            readonly Action action;
+
+
+            public ArbitraryActionInterceptor(Action action)
+            {
+                this.action = action;
+            }
+
+            protected override Task<ServerCallArbitrator<TRequest, TResponse>> InterceptHandler<TRequest, TResponse>(ServerCallContext context, bool clientStreaming, bool serverStreaming, TRequest request)
+            {
+                action();
+                return Task.FromResult<ServerCallArbitrator<TRequest, TResponse>>(null);
+            }
+        }
+
+        [Test]
+        public void VerifyInterceptorOrdering()
+        {
+            var helper = new MockServiceHelper(Host);
+            helper.UnaryHandler = new UnaryServerMethod<string, string>((request, context) =>
+            {
+                return Task.FromResult("PASS");
+            });
+            string s = "";
+            helper.ServiceDefinition = helper.ServiceDefinition.Intercept(new ArbitraryActionInterceptor(() => s+="A")).Intercept(new ArbitraryActionInterceptor(()=>s+="B")).Intercept(new ArbitraryActionInterceptor(()=>s+="C"));
+            var server = helper.GetServer();
+            server.Start();
+            var channel = helper.GetChannel();
+            Assert.AreEqual("PASS", Calls.BlockingUnaryCall(helper.CreateUnaryCall(), ""));
+            Assert.AreEqual("CBA", s);
+        }
     }
 }
