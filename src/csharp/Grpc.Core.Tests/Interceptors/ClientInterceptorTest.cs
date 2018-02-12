@@ -55,5 +55,78 @@ namespace Grpc.Core.Interceptors.Tests
             });
             Assert.AreEqual("PASS", callInvoker.BlockingUnaryCall(new Method<string, string>(MethodType.Unary, MockServiceHelper.ServiceName, "Unary", Marshallers.StringMarshaller, Marshallers.StringMarshaller), Host, new CallOptions().WithHeaders(new Metadata()), ""));
         }
+
+        [Test]
+        public void CheckInterceptorOrderInClientInterceptors()
+        {
+            var helper = new MockServiceHelper(Host);
+            helper.UnaryHandler = new UnaryServerMethod<string, string>((request, context) =>
+            {
+                return Task.FromResult("PASS");
+            });
+            var server = helper.GetServer();
+            server.Start();
+            string order = "";
+            var callInvoker = helper.GetChannel().Intercept(metadata =>
+            {
+                order += "interceptor1";
+                return metadata;
+            }).Intercept(metadata =>
+            {
+                order += "interceptor2";
+                return metadata;
+            }).Intercept(metadata =>
+            {
+                order += "interceptor3";
+                return metadata;
+            });
+            Assert.AreEqual("PASS", callInvoker.BlockingUnaryCall(new Method<string, string>(MethodType.Unary, MockServiceHelper.ServiceName, "Unary", Marshallers.StringMarshaller, Marshallers.StringMarshaller), Host, new CallOptions().WithHeaders(new Metadata()), ""));
+            Assert.AreEqual("interceptor3interceptor2interceptor1", order);
+        }
+
+        private class CountingInterceptor : GenericInterceptor
+        {
+            protected override ClientCallArbitrator<TRequest, TResponse> InterceptCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, bool clientStreaming, bool serverStreaming, TRequest request)
+            {
+                if (!clientStreaming)
+                {
+                    return null;
+                }
+                int counter = 0;
+                return new ClientCallArbitrator<TRequest, TResponse>
+                {
+                    OnRequestMessage = m => { counter++; return m; },
+                    OnUnaryResponse = x => (TResponse)(object)counter.ToString()
+                };
+            }
+        }
+
+        [Test]
+        public async Task CountNumberOfRequestsInClientInterceptors()
+        {
+            var helper = new MockServiceHelper(Host);
+            helper.ClientStreamingHandler = new ClientStreamingServerMethod<string, string>(async (requestStream, context) =>
+            {
+                string result = "";
+                await requestStream.ForEachAsync((request) =>
+                {
+                    result += request;
+                    return TaskUtils.CompletedTask;
+                });
+                await Task.Delay(100);
+                return result;
+            });
+
+            var callInvoker = helper.GetChannel().Intercept(new CountingInterceptor());
+
+            var server = helper.GetServer();
+            server.Start();
+            var call = callInvoker.AsyncClientStreamingCall(new Method<string, string>(MethodType.ClientStreaming, MockServiceHelper.ServiceName, "ClientStreaming", Marshallers.StringMarshaller, Marshallers.StringMarshaller), Host, new CallOptions().WithHeaders(new Metadata()));
+            await call.RequestStream.WriteAllAsync(new string[] { "A", "B", "C" });
+            Assert.AreEqual("3", await call.ResponseAsync);
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+            Assert.IsNotNull(call.GetTrailers());
+        }
     }
 }
