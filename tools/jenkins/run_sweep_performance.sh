@@ -20,14 +20,14 @@ SERVER_HOST=${1:-grpc-performance-server-32core}
 CLIENT_HOST1=${2:-grpc-performance-client-32core}
 CLIENT_HOST2=${3:-grpc-performance-client2-32core}
 # Enter the gRPC repo root
-cd $(dirname $0)/../..
+cd "$(dirname "$0")/../.."
 
 # scalability with 32cores (and upload to a different BQ table)
 tools/run_tests/run_performance_tests.py \
     -l c++ \
     --category sweep \
     --bq_result_table performance_test.performance_experiment_32core \
-    --remote_worker_host ${SERVER_HOST} ${CLIENT_HOST1} ${CLIENT_HOST2} \
+    --remote_worker_host "${SERVER_HOST}" "${CLIENT_HOST1}" "${CLIENT_HOST2}" \
     --perf_args "record -F 97 --call-graph dwarf" \
     || EXIT_CODE=1
 
