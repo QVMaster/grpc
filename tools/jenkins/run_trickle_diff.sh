@@ -17,7 +17,7 @@
 set -ex
 
 # Enter the gRPC repo root
-cd $(dirname $0)/../..
+cd "$(dirname "$0")/../.."
 
 tools/run_tests/start_port_server.py
-tools/profiling/microbenchmarks/bm_diff/bm_main.py -d origin/$ghprbTargetBranch -b bm_fullstack_trickle -l 4 -t cli_transport_stalls_per_iteration cli_stream_stalls_per_iteration svr_transport_stalls_per_iteration svr_stream_stalls_per_iteration --no-counters --pr_comment_name trickle
+tools/profiling/microbenchmarks/bm_diff/bm_main.py -d "origin/${ghprbTargetBranch:?}" -b bm_fullstack_trickle -l 4 -t cli_transport_stalls_per_iteration cli_stream_stalls_per_iteration svr_transport_stalls_per_iteration svr_stream_stalls_per_iteration --no-counters --pr_comment_name trickle
