@@ -17,7 +17,7 @@
 set -ex
 
 # Enter the gRPC repo root
-cd $(dirname $0)/../..
+cd "$(dirname "$0")/../.."
 
 tools/run_tests/start_port_server.py
-tools/profiling/qps/qps_diff.py -d origin/$ghprbTargetBranch
+tools/profiling/qps/qps_diff.py -d "origin/${ghprbTargetBranch:?}"
